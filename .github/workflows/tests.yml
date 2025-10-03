@@ -1,9 +1,7 @@
 name: Lab Example CI
-
 on:
   push:
   pull_request:
-
 jobs:
   test-windows:
     runs-on: windows-latest
@@ -13,8 +11,8 @@ jobs:
       - name: Show g++ version
         run: g++ --version
       - name: Run Windows batch test
-        run: call run_tests.bat
-
+        shell: cmd
+        run: run_tests.bat
   test-linux:
     runs-on: ubuntu-latest
     steps:
