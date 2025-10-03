@@ -1,7 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-
-rem Minimal test runner for p1 only (CI diagnosis)
+rem Flat for-loop test runner for p1 (all testcases, no functions)
 
 echo [LOG] Checking for g++...
 where g++ >NUL 2>&1
@@ -10,6 +9,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
+echo [LOG] Creating build directory...
 if not exist build mkdir build >NUL 2>&1
 
 echo [LOG] Compiling src/p1.cpp...
@@ -20,23 +20,43 @@ if errorlevel 1 (
 )
 echo [LOG] Compilation successful.
 
-echo [LOG] Running build/p1.exe with tests/p1/inputs/01.in...
-build\p1.exe < tests\p1\inputs\01.in > build\tmp.out 2>&1
-if errorlevel 1 (
-  echo [FAIL] Program exited with error.
-  exit /b 1
-)
-echo [LOG] Program ran successfully.
+echo [LOG] Running tests for p1...
+set passed=0
+set total=0
 
-echo [LOG] Comparing output with tests/p1/outputs/01.out...
-fc /N /W build\tmp.out tests\p1\outputs\01.out >NUL 2>&1
-if errorlevel 1 (
-  echo [FAIL] Output mismatch.
-  echo ----- Expected -----
-  type tests\p1\outputs\01.out
-  echo ----- Got -----
-  type build\tmp.out
+for %%f in (tests\p1\inputs\*.in) do (
+  echo [LOG] Processing test: %%~nf
+  set /a total+=1
+  set "infile=%%f"
+  set "basename=%%~nf"
+  set "outfile=tests\p1\outputs\!basename!.out"
+  set "tmpfile=build\tmp_!basename!.out"
+  
+  echo [LOG] Running build/p1.exe ^< !infile! ^> !tmpfile!
+  build\p1.exe < "!infile!" > "!tmpfile!" 2>&1
+  if errorlevel 1 (
+    echo [FAIL] p1:!basename!.in ^(program exited with error^)
+  ) else (
+    echo [LOG] Comparing !tmpfile! with !outfile!...
+    fc /N /W "!tmpfile!" "!outfile!" >NUL 2>&1
+    if errorlevel 1 (
+      echo [FAIL] p1:!basename!.in ^(output mismatch^)
+      echo ----- Expected -----
+      type "!outfile!"
+      echo ----- Got -----
+      type "!tmpfile!"
+    ) else (
+      echo [PASS] p1:!basename!.in
+      set /a passed+=1
+    )
+  )
+)
+
+echo [LOG] Tests completed: !passed!/!total! passed
+if !passed! equ !total! (
+  echo [RESULT] All tests passed!
+  exit /b 0
+) else (
+  echo [RESULT] Some tests failed.
   exit /b 1
 )
-echo [PASS] Test passed.
-exit /b 0
