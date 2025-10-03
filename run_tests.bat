@@ -2,17 +2,14 @@
 setlocal enabledelayedexpansion
 rem Multi-problem, multi-case test runner (flat for-loops, no functions/call, Windows batch)
 rem Auto-discover all p*.cpp in src/, compile each, run all test cases per problem, display summary
-
 echo [LOG] Checking for g++...
 where g++ >NUL 2>&1
 if errorlevel 1 (
-  echo [FAIL] g++ not found. Please install MinGW-w64 or similar.
+  echo ❌ FAIL g++ not found. Please install MinGW-w64 or similar.
   exit /b 1
 )
-
 echo [LOG] Creating build directory...
 if not exist build mkdir build >NUL 2>&1
-
 rem ===== Phase 1: Discover all problems from src\p*.cpp =====
 echo [LOG] Discovering problems from src\p*.cpp...
 set "PROBLEMS="
@@ -31,19 +28,16 @@ for %%F in (src\p*.cpp) do (
     )
   )
 )
-
 if "!PROBLEMS!"=="" (
-  echo [FAIL] No problems discovered in src\. Expect files like src\p1.cpp or src\p1_name.cpp
+  echo ❌ FAIL No problems discovered in src\. Expect files like src\p1.cpp or src\p1_name.cpp
   exit /b 1
 )
-
 echo [LOG] Discovered problems: !PROBLEMS!
 echo.
-
 rem ===== Phase 2: For each problem, compile and run all test cases =====
 for %%P in (!PROBLEMS!) do (
   echo ===============================
-  echo [BUILD] Problem: %%P
+  echo 🔧 BUILD Problem: %%P
   
   set "skip_this=0"
   
@@ -56,7 +50,7 @@ for %%P in (!PROBLEMS!) do (
       if "!src!"=="" (
         set "src=%%S"
       ) else (
-        echo [FAIL] Multiple sources found for %%P: !src! and %%S
+        echo ❌ FAIL Multiple sources found for %%P: !src! and %%S
         set "src="
         set "skip_this=1"
       )
@@ -64,7 +58,7 @@ for %%P in (!PROBLEMS!) do (
   )
   
   if "!src!"=="" (
-    echo [FAIL] No source for %%P. Expected src\%%P.cpp or src\%%P_*.cpp
+    echo ❌ FAIL No source for %%P. Expected src\%%P.cpp or src\%%P_*.cpp
     echo 0 0 > "build\%%P.cases"
     echo 0 100 > "build\%%P.score"
     set "skip_this=1"
@@ -74,7 +68,7 @@ for %%P in (!PROBLEMS!) do (
     echo [LOG] Compiling !src!...
     g++ -std=c++17 -O2 "!src!" -o "build\%%P.exe" 2> "build\%%P.compile.log"
     if errorlevel 1 (
-      echo [FAIL] Compilation failed for %%P. See build\%%P.compile.log
+      echo ⚠️  Compilation failed for %%P. See build\%%P.compile.log
       rem Count test cases for failure record
       set /a cases_count=0
       if exist "tests\%%P\inputs" (
@@ -94,12 +88,12 @@ for %%P in (!PROBLEMS!) do (
   )
   
   if "!skip_this!"=="0" (
-    echo [PASS] Compilation successful
+    echo ✅ PASS Compilation successful
     echo ===============================
     
     rem Check test directories exist
     if not exist "tests\%%P\inputs" (
-      echo [FAIL] No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
+      echo ❌ FAIL No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
       echo 0 0 > "build\%%P.cases"
       set "points=100"
       if exist "config\points.conf" (
@@ -113,7 +107,7 @@ for %%P in (!PROBLEMS!) do (
     
     if "!skip_this!"=="0" (
       if not exist "tests\%%P\outputs" (
-        echo [FAIL] No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
+        echo ❌ FAIL No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
         echo 0 0 > "build\%%P.cases"
         set "points=100"
         if exist "config\points.conf" (
@@ -139,20 +133,20 @@ for %%P in (!PROBLEMS!) do (
         set "tmpfile=build\tmp_!basename!.out"
         
         if not exist "!expected!" (
-          echo [FAIL] %%P:!basename!.in ^(missing expected !basename!.out^)
+          echo ❌ FAIL %%P:!basename!.in ^(missing expected !basename!.out^)
         ) else (
           cmd /c ""build\%%P.exe" < "%%f" > "!tmpfile!"" 1> "build\%%P.run.log" 2>&1
           if errorlevel 1 (
-            echo [FAIL] %%P:!basename!.in ^(program exited with error^)
+            echo ❌ FAIL %%P:!basename!.in ^(program exited with error^)
           ) else (
             rem Normalize line endings and compare
             powershell -NoProfile -Command "(Get-Content -Raw '!expected!').Replace('`r','') | Set-Content -NoNewline 'build\expect.norm'" 2>NUL
             powershell -NoProfile -Command "(Get-Content -Raw '!tmpfile!').Replace('`r','') | Set-Content -NoNewline 'build\actual.norm'" 2>NUL
             fc /N /W "build\expect.norm" "build\actual.norm" >NUL 2>&1
             if errorlevel 1 (
-              echo [FAIL] %%P:!basename!.in
+              echo ❌ FAIL %%P:!basename!.in
             ) else (
-              echo [PASS] %%P:!basename!.in
+              echo ✅ PASS %%P:!basename!.in
               set /a passed+=1
             )
           )
@@ -172,7 +166,7 @@ for %%P in (!PROBLEMS!) do (
       if !passed! equ !total! set /a gained=!points!
       
       echo.
-      echo [RESULT] %%P Result: !passed!/!total! tests passed ^| Score: !gained!/!points!
+      echo 📄 RESULT %%P Result: !passed!/!total! tests passed ^| Score: !gained!/!points!
       echo ===============================
       echo.
       
@@ -182,13 +176,11 @@ for %%P in (!PROBLEMS!) do (
     )
   )
 )
-
 rem ===== Phase 3: Calculate and display summary =====
 set /a overall_g=0
 set /a overall_t=0
 set /a sum_pass=0
 set /a sum_fail=0
-
 for %%P in (!PROBLEMS!) do (
   if exist "build\%%P.score" (
     for /f "tokens=1,2" %%a in (build\%%P.score) do (
@@ -204,19 +196,17 @@ for %%P in (!PROBLEMS!) do (
   )
 )
 set /a sum_fail=!sum_fail!-!sum_pass!
-
 if !overall_t! gtr 0 (
-  echo [TOTAL] Total Score: !overall_g!/!overall_t!
+  echo 📊 TOTAL Total Score: !overall_g!/!overall_t!
   echo.
 )
-
-rem Print summary table
+rem Print summary table with box-drawing characters
 echo Summary Table
-set "top=+--------+------------+------------+--------------+"
+set "top=┌────────┬────────────┬────────────┬──────────────┐"
 echo !top!
-powershell -NoProfile -Command "$fmt='| {0,-8} | {1,10} | {2,10} | {3,12} |'; Write-Host ($fmt -f 'Problem','pass_test','fail_test','score')"
-echo +--------+------------+------------+--------------+
-
+powershell -NoProfile -Command "$fmt='│ {0,-8} │ {1,10} │ {2,10} │ {3,12} │'; Write-Host ($fmt -f 'Problem','pass_test','fail_test','score')"
+set "sep=├────────┼────────────┼────────────┼──────────────┤"
+echo !sep!
 for %%P in (!PROBLEMS!) do (
   set "pass=0"
   set "total_c=0"
@@ -235,13 +225,12 @@ for %%P in (!PROBLEMS!) do (
     )
   )
   set /a fail_c=!total_c!-!pass!
-  powershell -NoProfile -Command "$fmt='| {0,-8} | {1,10} | {2,10} | {3,12} |'; Write-Host ($fmt -f '%%P',!pass!,!fail_c!,'!g!/!t!')"
+  powershell -NoProfile -Command "$fmt='│ {0,-8} │ {1,10} │ {2,10} │ {3,12} │'; Write-Host ($fmt -f '%%P',!pass!,!fail_c!,'!g!/!t!')"
 )
-
-echo +--------+------------+------------+--------------+
-powershell -NoProfile -Command "$fmt='| {0,-8} | {1,10} | {2,10} | {3,12} |'; Write-Host ($fmt -f 'total',!sum_pass!,!sum_fail!,'!overall_g!/!overall_t!')"
-echo !top!
-
+echo !sep!
+powershell -NoProfile -Command "$fmt='│ {0,-8} │ {1,10} │ {2,10} │ {3,12} │'; Write-Host ($fmt -f 'total',!sum_pass!,!sum_fail!,'!overall_g!/!overall_t!')"
+set "bot=└────────┴────────────┴────────────┴──────────────┘"
+echo !bot!
 rem Exit with failure count
 set /a exit_code=!sum_fail!
 if !exit_code! gtr 0 (
