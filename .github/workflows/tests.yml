@@ -1,37 +1,27 @@
-name: CI Tests
+name: Lab Example CI
 
 on:
   push:
   pull_request:
 
 jobs:
-  linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run tests (bash)
-        shell: bash
-        run: |
-          bash run_tests.sh --color || true
-          # Ensure non-zero exit propagates for CI result
-          bash run_tests.sh
-
-  windows:
+  test-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Install MinGW (g++)
-        shell: powershell
-        run: |
-          choco install -y mingw
-          echo "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw64\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      - name: Verify g++
-        shell: cmd
+      - uses: actions/checkout@v4
+      # 沒有 install mingw 步驟，直接印版本確認即可
+      - name: Show g++ version
         run: g++ --version
-      - name: Run tests (batch)
-        shell: cmd
-        run: |
-          call run_tests.bat
+      - name: Run Windows batch test
+        run: call run_tests.bat
 
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show g++ version
+        run: g++ --version
+      - name: Make test.sh executable
+        run: chmod +x run_tests.sh
+      - name: Run Linux shell test
+        run: ./run_tests.sh
