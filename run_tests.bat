@@ -45,6 +45,8 @@ for %%P in (!PROBLEMS!) do (
   echo ===============================
   echo [BUILD] Problem: %%P
   
+  set "skip_this=0"
+  
   rem Find source file for %%P
   set "src="
   if exist "src\%%P.cpp" set "src=src\%%P.cpp"
@@ -56,7 +58,7 @@ for %%P in (!PROBLEMS!) do (
       ) else (
         echo [FAIL] Multiple sources found for %%P: !src! and %%S
         set "src="
-        goto :skip_problem_%%P
+        set "skip_this=1"
       )
     )
   )
@@ -65,112 +67,120 @@ for %%P in (!PROBLEMS!) do (
     echo [FAIL] No source for %%P. Expected src\%%P.cpp or src\%%P_*.cpp
     echo 0 0 > "build\%%P.cases"
     echo 0 100 > "build\%%P.score"
-    goto :skip_problem_%%P
+    set "skip_this=1"
   )
   
-  echo [LOG] Compiling !src!...
-  g++ -std=c++17 -O2 "!src!" -o "build\%%P.exe" 2> "build\%%P.compile.log"
-  if errorlevel 1 (
-    echo [FAIL] Compilation failed for %%P. See build\%%P.compile.log
-    rem Count test cases for failure record
-    set /a cases_count=0
-    if exist "tests\%%P\inputs" (
-      for %%T in (tests\%%P\inputs\*.in) do set /a cases_count+=1
-    )
-    echo 0 !cases_count! > "build\%%P.cases"
-    rem Get points from config (default 100)
-    set "points=100"
-    if exist "config\points.conf" (
-      for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
-        if "%%A"=="problem.%%P" set "points=%%B"
+  if "!skip_this!"=="0" (
+    echo [LOG] Compiling !src!...
+    g++ -std=c++17 -O2 "!src!" -o "build\%%P.exe" 2> "build\%%P.compile.log"
+    if errorlevel 1 (
+      echo [FAIL] Compilation failed for %%P. See build\%%P.compile.log
+      rem Count test cases for failure record
+      set /a cases_count=0
+      if exist "tests\%%P\inputs" (
+        for %%T in (tests\%%P\inputs\*.in) do set /a cases_count+=1
       )
-    )
-    echo 0 !points! > "build\%%P.score"
-    goto :skip_problem_%%P
-  )
-  echo [PASS] Compilation successful
-  echo ===============================
-  
-  rem Check test directories exist
-  if not exist "tests\%%P\inputs" (
-    echo [FAIL] No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
-    echo 0 0 > "build\%%P.cases"
-    set "points=100"
-    if exist "config\points.conf" (
-      for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
-        if "%%A"=="problem.%%P" set "points=%%B"
-      )
-    )
-    echo 0 !points! > "build\%%P.score"
-    goto :skip_problem_%%P
-  )
-  if not exist "tests\%%P\outputs" (
-    echo [FAIL] No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
-    echo 0 0 > "build\%%P.cases"
-    set "points=100"
-    if exist "config\points.conf" (
-      for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
-        if "%%A"=="problem.%%P" set "points=%%B"
-      )
-    )
-    echo 0 !points! > "build\%%P.score"
-    goto :skip_problem_%%P
-  )
-  
-  rem Run all test cases for %%P
-  set /a total=0
-  set /a passed=0
-  
-  for %%f in (tests\%%P\inputs\*.in) do (
-    set /a total+=1
-    set "basename=%%~nf"
-    set "infile=%%f"
-    set "expected=tests\%%P\outputs\!basename!.out"
-    set "tmpfile=build\tmp_!basename!.out"
-    
-    if not exist "!expected!" (
-      echo [FAIL] %%P:!basename!.in ^(missing expected !basename!.out^)
-    ) else (
-      cmd /c ""build\%%P.exe" < "%%f" > "!tmpfile!"" 1> "build\%%P.run.log" 2>&1
-      if errorlevel 1 (
-        echo [FAIL] %%P:!basename!.in ^(program exited with error^)
-      ) else (
-        rem Normalize line endings and compare
-        powershell -NoProfile -Command "(Get-Content -Raw '!expected!').Replace('`r','') | Set-Content -NoNewline 'build\expect.norm'" 2>NUL
-        powershell -NoProfile -Command "(Get-Content -Raw '!tmpfile!').Replace('`r','') | Set-Content -NoNewline 'build\actual.norm'" 2>NUL
-        fc /N /W "build\expect.norm" "build\actual.norm" >NUL 2>&1
-        if errorlevel 1 (
-          echo [FAIL] %%P:!basename!.in
-        ) else (
-          echo [PASS] %%P:!basename!.in
-          set /a passed+=1
+      echo 0 !cases_count! > "build\%%P.cases"
+      rem Get points from config (default 100)
+      set "points=100"
+      if exist "config\points.conf" (
+        for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
+          if "%%A"=="problem.%%P" set "points=%%B"
         )
       )
+      echo 0 !points! > "build\%%P.score"
+      set "skip_this=1"
     )
   )
   
-  rem Get problem points from config
-  set "points=100"
-  if exist "config\points.conf" (
-    for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
-      if "%%A"=="problem.%%P" set "points=%%B"
+  if "!skip_this!"=="0" (
+    echo [PASS] Compilation successful
+    echo ===============================
+    
+    rem Check test directories exist
+    if not exist "tests\%%P\inputs" (
+      echo [FAIL] No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
+      echo 0 0 > "build\%%P.cases"
+      set "points=100"
+      if exist "config\points.conf" (
+        for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
+          if "%%A"=="problem.%%P" set "points=%%B"
+        )
+      )
+      echo 0 !points! > "build\%%P.score"
+      set "skip_this=1"
+    )
+    
+    if "!skip_this!"=="0" (
+      if not exist "tests\%%P\outputs" (
+        echo [FAIL] No tests found for %%P. Expected tests\%%P\inputs and tests\%%P\outputs
+        echo 0 0 > "build\%%P.cases"
+        set "points=100"
+        if exist "config\points.conf" (
+          for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
+            if "%%A"=="problem.%%P" set "points=%%B"
+          )
+        )
+        echo 0 !points! > "build\%%P.score"
+        set "skip_this=1"
+      )
+    )
+    
+    if "!skip_this!"=="0" (
+      rem Run all test cases for %%P
+      set /a total=0
+      set /a passed=0
+      
+      for %%f in (tests\%%P\inputs\*.in) do (
+        set /a total+=1
+        set "basename=%%~nf"
+        set "infile=%%f"
+        set "expected=tests\%%P\outputs\!basename!.out"
+        set "tmpfile=build\tmp_!basename!.out"
+        
+        if not exist "!expected!" (
+          echo [FAIL] %%P:!basename!.in ^(missing expected !basename!.out^)
+        ) else (
+          cmd /c ""build\%%P.exe" < "%%f" > "!tmpfile!"" 1> "build\%%P.run.log" 2>&1
+          if errorlevel 1 (
+            echo [FAIL] %%P:!basename!.in ^(program exited with error^)
+          ) else (
+            rem Normalize line endings and compare
+            powershell -NoProfile -Command "(Get-Content -Raw '!expected!').Replace('`r','') | Set-Content -NoNewline 'build\expect.norm'" 2>NUL
+            powershell -NoProfile -Command "(Get-Content -Raw '!tmpfile!').Replace('`r','') | Set-Content -NoNewline 'build\actual.norm'" 2>NUL
+            fc /N /W "build\expect.norm" "build\actual.norm" >NUL 2>&1
+            if errorlevel 1 (
+              echo [FAIL] %%P:!basename!.in
+            ) else (
+              echo [PASS] %%P:!basename!.in
+              set /a passed+=1
+            )
+          )
+        )
+      )
+      
+      rem Get problem points from config
+      set "points=100"
+      if exist "config\points.conf" (
+        for /f "tokens=1,2 delims==" %%A in ('findstr /b /c:"problem.%%P=" config\points.conf 2^>NUL') do (
+          if "%%A"=="problem.%%P" set "points=%%B"
+        )
+      )
+      
+      rem Calculate score (all-or-nothing: full points if all tests pass)
+      set /a gained=0
+      if !passed! equ !total! set /a gained=!points!
+      
+      echo.
+      echo [RESULT] %%P Result: !passed!/!total! tests passed ^| Score: !gained!/!points!
+      echo ===============================
+      echo.
+      
+      rem Save results
+      echo !passed! !total! > "build\%%P.cases"
+      echo !gained! !points! > "build\%%P.score"
     )
   )
-  
-  rem Calculate score (all-or-nothing: full points if all tests pass)
-  set /a gained=0
-  if !passed! equ !total! set /a gained=!points!
-  
-  echo.
-  echo [RESULT] %%P Result: !passed!/!total! tests passed ^| Score: !gained!/!points!
-  echo ===============================
-  echo.
-  
-  rem Save results
-  echo !passed! !total! > "build\%%P.cases"
-  echo !gained! !points! > "build\%%P.score"
-  
-  :skip_problem_%%P
 )
 
 rem ===== Phase 3: Calculate and display summary =====
