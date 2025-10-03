@@ -25,6 +25,7 @@ if "%PROBLEMS%"=="" (
   exit /b 1
 )
 for %%P in (%PROBLEMS%) do (
+  echo [DEBUG] Starting run_problem for %%P
   call :run_problem "%%P"
   set /a overall+=!errorlevel!
 )
@@ -80,6 +81,7 @@ if not defined src (
 set "bin=build\%prob%.exe"
 echo ===============================
 echo [BUILD] Compiling !src!... 
+echo [DEBUG] Entering compilation block for %prob%
 g++ -std=c++17 -O2 "!src!" -o "!bin!" 2> "build\%prob%.compile.log"
 if errorlevel 1 (
   echo [FAIL] Compilation failed for %prob%. See build\%prob%.compile.log
@@ -100,19 +102,23 @@ set passed=0
 for %%f in ("%base_dir%\inputs\*.in") do (
   set /a total+=1
   for %%~nf in ("%%f") do set "base=%%~nf"
+  echo [DEBUG] Processing testcase %prob%:!base!.in
   set "expected=%base_dir%\outputs\!base!.out"
   if not exist "!expected!" (
     echo [FAIL] %prob%:!base!.in ^(missing expected !base!.out^)
     goto :continue_case
   )
+  echo [DEBUG] Running program with timeout for %prob%:!base!.in
   rem Avoid multiple stdout/stderr redirects to prevent hanging on CI
-  "%bin%" < "%%f" > build\tmp.raw 2> build\%prob%.run.log
+  rem Add timeout using PowerShell Start-Sleep
+  powershell -NoProfile -Command "$job = Start-Job -ScriptBlock { & '%bin%' < '%%f' }; Wait-Job $job -Timeout 15 | Out-Null; if ($job.State -eq 'Running') { Stop-Job $job; Remove-Job $job; exit 124 } else { $result = Receive-Job $job; Remove-Job $job; $result; exit $LASTEXITCODE }" > build\tmp.raw 2> build\%prob%.run.log
   if errorlevel 1 (
-    echo [FAIL] %prob%:!base!.in ^(program exited with error^)
+    echo [FAIL] %prob%:!base!.in ^(program exited with error or timeout^)
     echo -- stderr/stdout (first 5 lines) --
     powershell -NoProfile -Command "Get-Content -LiteralPath 'build/%prob%.run.log' -TotalCount 5" 2>NUL
     goto :continue_case
   )
+  echo [DEBUG] Entering comparison block for %prob%:!base!.in
   rem Normalize CRLF in both expected and actual
   powershell -NoProfile -Command "(Get-Content -Raw '!expected!').Replace('`r','') | Set-Content -NoNewline 'build/expect.norm'"
   powershell -NoProfile -Command "(Get-Content -Raw 'build/tmp.raw').Replace('`r','') | Set-Content -NoNewline 'build/actual.norm'"
