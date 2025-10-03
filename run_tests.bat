@@ -200,11 +200,11 @@ if !overall_t! gtr 0 (
   echo 📊 TOTAL Total Score: !overall_g!/!overall_t!
   echo.
 )
-rem Print summary table with box-drawing characters
+rem Print summary table with box-drawing characters and manual padding
 echo Summary Table
 set "top=┌────────┬────────────┬────────────┬──────────────┐"
 echo !top!
-powershell -NoProfile -Command "$fmt='│ {0,-8} │ {1,10} │ {2,10} │ {3,12} │'; Write-Host ($fmt -f 'Problem','pass_test','fail_test','score')"
+echo │ Problem  │  pass_test │  fail_test │        score │
 set "sep=├────────┼────────────┼────────────┼──────────────┤"
 echo !sep!
 for %%P in (!PROBLEMS!) do (
@@ -225,10 +225,32 @@ for %%P in (!PROBLEMS!) do (
     )
   )
   set /a fail_c=!total_c!-!pass!
-  powershell -NoProfile -Command "$fmt='│ {0,-8} │ {1,10} │ {2,10} │ {3,12} │'; Write-Host ($fmt -f '%%P',!pass!,!fail_c!,'!g!/!t!')"
+  set "score_str=!g!/!t!"
+  rem Pad problem name to 8 chars (left align)
+  set "prob_pad=%%P        "
+  set "prob_pad=!prob_pad:~0,8!"
+  rem Pad pass to 10 chars (right align)
+  set "pass_pad=          !pass!"
+  set "pass_pad=!pass_pad:~-10!"
+  rem Pad fail to 10 chars (right align)
+  set "fail_pad=          !fail_c!"
+  set "fail_pad=!fail_pad:~-10!"
+  rem Pad score to 12 chars (right align)
+  set "score_pad=            !score_str!"
+  set "score_pad=!score_pad:~-12!"
+  echo │ !prob_pad! │!pass_pad! │!fail_pad! │!score_pad! │
 )
 echo !sep!
-powershell -NoProfile -Command "$fmt='│ {0,-8} │ {1,10} │ {2,10} │ {3,12} │'; Write-Host ($fmt -f 'total',!sum_pass!,!sum_fail!,'!overall_g!/!overall_t!')"
+set "score_str=!overall_g!/!overall_t!"
+set "total_pad=total   "
+set "total_pad=!total_pad:~0,8!"
+set "pass_pad=          !sum_pass!"
+set "pass_pad=!pass_pad:~-10!"
+set "fail_pad=          !sum_fail!"
+set "fail_pad=!fail_pad:~-10!"
+set "score_pad=            !score_str!"
+set "score_pad=!score_pad:~-12!"
+echo │ !total_pad! │!pass_pad! │!fail_pad! │!score_pad! │
 set "bot=└────────┴────────────┴────────────┴──────────────┘"
 echo !bot!
 rem Exit with failure count
