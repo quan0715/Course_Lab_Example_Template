@@ -200,59 +200,9 @@ if !overall_t! gtr 0 (
   echo 📊 TOTAL Total Score: !overall_g!/!overall_t!
   echo.
 )
-rem Print summary table with box-drawing characters and manual padding
+rem Print summary table using PowerShell with dynamic widths (ASCII borders)
 echo Summary Table
-set "top=┌────────┬────────────┬────────────┬──────────────┐"
-echo !top!
-echo │ Problem  │  pass_test │  fail_test │        score │
-set "sep=├────────┼────────────┼────────────┼──────────────┤"
-echo !sep!
-for %%P in (!PROBLEMS!) do (
-  set "pass=0"
-  set "total_c=0"
-  set "g=0"
-  set "t=0"
-  if exist "build\%%P.cases" (
-    for /f "tokens=1,2" %%a in (build\%%P.cases) do (
-      set "pass=%%a"
-      set "total_c=%%b"
-    )
-  )
-  if exist "build\%%P.score" (
-    for /f "tokens=1,2" %%a in (build\%%P.score) do (
-      set "g=%%a"
-      set "t=%%b"
-    )
-  )
-  set /a fail_c=!total_c!-!pass!
-  set "score_str=!g!/!t!"
-  rem Pad problem name to 8 chars (left align)
-  set "prob_pad=%%P        "
-  set "prob_pad=!prob_pad:~0,8!"
-  rem Pad pass to 10 chars (right align)
-  set "pass_pad=          !pass!"
-  set "pass_pad=!pass_pad:~-10!"
-  rem Pad fail to 10 chars (right align)
-  set "fail_pad=          !fail_c!"
-  set "fail_pad=!fail_pad:~-10!"
-  rem Pad score to 12 chars (right align)
-  set "score_pad=            !score_str!"
-  set "score_pad=!score_pad:~-12!"
-  echo │ !prob_pad! │!pass_pad! │!fail_pad! │!score_pad! │
-)
-echo !sep!
-set "score_str=!overall_g!/!overall_t!"
-set "total_pad=total   "
-set "total_pad=!total_pad:~0,8!"
-set "pass_pad=          !sum_pass!"
-set "pass_pad=!pass_pad:~-10!"
-set "fail_pad=          !sum_fail!"
-set "fail_pad=!fail_pad:~-10!"
-set "score_pad=            !score_str!"
-set "score_pad=!score_pad:~-12!"
-echo │ !total_pad! │!pass_pad! │!fail_pad! │!score_pad! │
-set "bot=└────────┴────────────┴────────────┴──────────────┘"
-echo !bot!
+powershell -NoProfile -Command "$list='!PROBLEMS!'.Split(' ',[StringSplitOptions]::RemoveEmptyEntries); $rows=@(); foreach($p in $list){ $pass=0;$total=0;$g=0;$t=0; if(Test-Path "build/$p.cases"){ $ct=(Get-Content -Raw "build/$p.cases"); $parts=$ct -split '\s+'; if($parts.Length -ge 2){ $pass=[int]$parts[0]; $total=[int]$parts[1] } } if(Test-Path "build/$p.score"){ $st=(Get-Content -Raw "build/$p.score"); $sp=$st -split '\s+'; if($sp.Length -ge 2){ $g=[int]$sp[0]; $t=[int]$sp[1] } } $fail=$total-$pass; $rows += [pscustomobject]@{ Problem=$p; Pass=$pass; Fail=$fail; Score=(''{0}/{1}'' -f $g,$t) } } $sum_pass=($rows|Measure-Object Pass -Sum).Sum; if(-not $sum_pass){$sum_pass=0}; $sum_fail=($rows|Measure-Object Fail -Sum).Sum; if(-not $sum_fail){$sum_fail=0}; $sum_g=0;$sum_t=0; foreach($p in $list){ if(Test-Path "build/$p.score"){ $st=(Get-Content -Raw "build/$p.score"); $sp=$st -split '\s+'; if($sp.Length -ge 2){ $sum_g += [int]$sp[0]; $sum_t += [int]$sp[1] } } } $rows += [pscustomobject]@{ Problem='total'; Pass=$sum_pass; Fail=$sum_fail; Score=(''{0}/{1}'' -f $sum_g,$sum_t) }; $w1=[Math]::Max(8, ((''Problem'').Length, ($rows|%{($_.Problem).ToString().Length}) | Measure-Object -Maximum).Maximum); $w2=[Math]::Max(10, ((''pass_test'').Length, ($rows|%{($_.Pass).ToString().Length}) | Measure-Object -Maximum).Maximum); $w3=[Math]::Max(10, ((''fail_test'').Length, ($rows|%{($_.Fail).ToString().Length}) | Measure-Object -Maximum).Maximum); $w4=[Math]::Max(12, ((''score'').Length, ($rows|%{($_.Score).ToString().Length}) | Measure-Object -Maximum).Maximum); function Rep($n,$ch){return ($ch * $n)} $top='+'+(Rep ($w1+2) '-')+'+'+(Rep ($w2+2) '-')+'+'+(Rep ($w3+2) '-')+'+'+(Rep ($w4+2) '-')+'+'; $sep=$top; $h1='Problem'.PadRight($w1); $h2='pass_test'.PadLeft($w2); $h3='fail_test'.PadLeft($w3); $h4='score'.PadLeft($w4); Write-Host $top; Write-Host ('| '+$h1+' | '+$h2+' | '+$h3+' | '+$h4+' |'); Write-Host $sep; foreach($r in $rows){ $c1=($r.Problem).ToString().PadRight($w1); $c2=($r.Pass).ToString().PadLeft($w2); $c3=($r.Fail).ToString().PadLeft($w3); $c4=($r.Score).ToString().PadLeft($w4); Write-Host ('| '+$c1+' | '+$c2+' | '+$c3+' | '+$c4+' |') }; Write-Host $top"
 rem Exit with failure count
 set /a exit_code=!sum_fail!
 if !exit_code! gtr 0 (
