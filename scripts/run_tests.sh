@@ -44,6 +44,7 @@ fi
 # Friendly, high-contrast prefixes with emojis
 PASS_PREFIX="${GREEN}✅ PASS${RESET}"
 FAIL_PREFIX="${RED}❌ FAIL${RESET}"
+TLE_PREFIX="${YELLOW}⏱️ TLE${RESET}"
 BUILD_PREFIX="${BLUE}🔧 BUILD${RESET}"
 RESULT_PREFIX="${BOLD}📄 RESULT${RESET}"
 TOTAL_PREFIX="${BOLD}📊 TOTAL${RESET}"
@@ -77,6 +78,68 @@ get_case_points() {
   local v
   v=$(cfg_get "case.${prob}.${base}")
   if is_integer "$v"; then echo "$v"; fi
+}
+
+get_timeout() {
+  local prob="$1"
+  local t
+  # Try problem specific timeout first
+  t=$(cfg_get "timeout.${prob}")
+  if is_integer "$t"; then echo "$t"; return; fi
+  # Try default timeout
+  t=$(cfg_get "timeout.default")
+  if is_integer "$t"; then echo "$t"; return; fi
+  # Fallback
+  echo "1"
+}
+
+run_with_timeout() {
+  local duration="$1"
+  shift
+  # If timeout command exists (Linux/GNU), use it
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${duration}s" "$@"
+  else
+    # Fallback to perl for macOS/BSD
+    perl -e 'alarm shift; exec @ARGV' "$duration" "$@"
+  fi
+}
+
+check_keywords() {
+  local prob="$1"
+  local src="$2"
+  
+  # Check forbidden keywords
+  local forbidden
+  forbidden=$(cfg_get "forbidden.${prob}")
+  if [ -n "$forbidden" ]; then
+    # Split by comma
+    IFS=',' read -ra ADDR <<< "$forbidden"
+    for keyword in "${ADDR[@]}"; do
+      # Trim whitespace
+      keyword=$(echo "$keyword" | xargs)
+      if grep -q -w "$keyword" "$src"; then
+        printf '%b\n' "${FAIL_PREFIX} Forbidden keyword found: '${keyword}'"
+        return 1
+      fi
+    done
+  fi
+
+  # Check required keywords
+  local required
+  required=$(cfg_get "required.${prob}")
+  if [ -n "$required" ]; then
+    IFS=',' read -ra ADDR <<< "$required"
+    for keyword in "${ADDR[@]}"; do
+      keyword=$(echo "$keyword" | xargs)
+      if ! grep -q -w "$keyword" "$src"; then
+        printf '%b\n' "${FAIL_PREFIX} Required keyword missing: '${keyword}'"
+        return 1
+      fi
+    done
+  fi
+  
+  return 0
 }
 
 override_points() {
@@ -175,6 +238,17 @@ run_problem() {
 
   local bin="build/${prob}"
   echo "$SEP"
+
+  # Keyword Check
+  if ! check_keywords "$prob" "$src"; then
+     # Record failure
+     echo "0 0" > "build/${prob}.cases"
+     local total_points_kw
+     total_points_kw=$(get_problem_points "$prob")
+     echo "0 ${total_points_kw}" > "build/${prob}.score"
+     return 1
+  fi
+
   printf '%b\n' "${BUILD_PREFIX} Compiling ${src}..."
   if ! g++ -std=c++17 -O2 "$src" -o "$bin" 2> "build/${prob}.compile.log"; then
     printf '%b\n' "${FAIL_PREFIX} Compilation failed for ${prob}. See build/${prob}.compile.log"
@@ -242,8 +316,18 @@ run_problem() {
       continue
     fi
 
-    if "$bin" < "$infile" > build/tmp.out 2> "build/${prob}.run.log"; then :; else
-      echo "${FAIL_PREFIX} ${prob}:${base}.in (program exited with error)"
+    local time_limit
+    time_limit=$(get_timeout "$prob")
+
+    # Run with timeout
+    run_with_timeout "$time_limit" "$bin" < "$infile" > build/tmp.out 2> "build/${prob}.run.log"
+    local run_rc=$?
+
+    if [ $run_rc -eq 124 ] || [ $run_rc -eq 142 ]; then
+      printf '%b\n' "${TLE_PREFIX} ${prob}:${base}.in (Time Limit Exceeded: ${time_limit}s)"
+      continue
+    elif [ $run_rc -ne 0 ]; then
+      echo "${FAIL_PREFIX} ${prob}:${base}.in (program exited with error code $run_rc)"
       echo "-- stderr (first 5 lines) --"
       head -n 5 "build/${prob}.run.log" || true
       continue

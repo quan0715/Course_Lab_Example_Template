@@ -1,0 +1,29 @@
+<header>
+    <div class="header-top">
+        <h1 id="page-title">程式測驗系統</h1>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <button class="btn btn-secondary" onclick="openHelpModal()" title="操作說明">說明 (Help)</button>
+            <button class="btn" onclick="runAll()">執行所有測試
+                <svg class="icon-play" style="margin-left: 8px;" viewBox="0 0 32 32"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="app-description" id="app-description"></div>
+</header>
+
+<div class="stats-bar" id="stats-bar">
+    <div class="stat-item">
+        <div class="stat-value success" id="stat-passed">0</div>
+        <div class="stat-label">通過 (Passed)</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-value danger" id="stat-failed">0</div>
+        <div class="stat-label">失敗 (Failed)</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-value primary" id="stat-score">0 / 0</div>
+        <div class="stat-label">總分 (Total Score)</div>
+    </div>
+</div>
+
+<div id="grid" class="grid"></div>

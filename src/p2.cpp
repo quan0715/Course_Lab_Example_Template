@@ -6,13 +6,9 @@ using namespace std;
 int main(){
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    string s; bool first=true; bool any=false; int ln=0;
+    string s; bool first=true; bool any=false;
     while (getline(cin,s)){
-        ++ln;
-        // Intentionally only reverse odd-numbered lines to make some tests fail
-        if (ln % 2 == 1) {
-            reverse(s.begin(), s.end());
-        }
+        // Bug: removed reverse - just output as-is, all tests will fail
         if(!first) cout<<"\n"; first=false; any=true;
         cout<<s;
     }

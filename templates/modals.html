@@ -1,0 +1,62 @@
+{# Modals for problem details and help #}
+<!-- Problem Detail Modal -->
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="flex-row">
+                <span class="modal-title" id="modal-title">Problem Details</span>
+                <button class="btn btn-sm" id="modal-rerun-btn" onclick="rerunCurrent()">
+                    Rerun
+                    <svg class="icon-play" style="width:12px; height:12px; margin-left:6px;" viewBox="0 0 32 32"><path d="M12,10V22l10-6L12,10Z"/><path d="M16,2A14,14,0,1,0,30,16,14,14,0,0,0,16,2Zm0,26A12,12,0,1,1,28,16,12,12,0,0,1,16,28Z"/></svg>
+                </button>
+            </div>
+            <button class="modal-close" onclick="closeModal()">
+                <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M24 9.4L22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z"/></svg>
+            </button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="help-modal-overlay" class="modal-overlay" onclick="closeHelpModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2 style="margin:0; font-size:1.25rem; font-weight:400;">操作說明</h2>
+            <button class="modal-close" onclick="closeHelpModal()">
+                <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M24 9.4L22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z"/></svg>
+            </button>
+        </div>
+
+                <h3>2. 查看結果</h3>
+                <ul>
+                    <li><strong>總覽</strong>：主頁顯示每個題目的通過/失敗狀態和得分</li>
+                    <li><strong>詳細資訊</strong>：點擊題目卡片查看詳細的測試結果</li>
+                    <li><strong>測試案例</strong>：展開每個測試案例查看輸入、預期輸出和實際輸出</li>
+                </ul>
+
+                <h3>3. 狀態說明</h3>
+                <ul>
+                    <li><strong>AC (Accepted)</strong>：所有測試通過 ✅</li>
+                    <li><strong>WA (Wrong Answer)</strong>：答案錯誤 ❌</li>
+                    <li><strong>TLE (Time Limit Exceeded)</strong>：執行逾時 ⏱️</li>
+                    <li><strong>CE (Compilation Error)</strong>：編譯錯誤 🔧</li>
+                    <li><strong>KW (Keyword Check)</strong>：關鍵字檢查失敗 🔍</li>
+                    <li><strong>ERR (Runtime Error)</strong>：執行錯誤 ⚠️</li>
+                </ul>
+
+                <h3>4. 題目資訊</h3>
+                <p>在題目詳細頁面中，您可以看到：</p>
+                <ul>
+                    <li><strong>配分</strong>：該題目的總分</li>
+                    <li><strong>Timeout</strong>：執行時間限制</li>
+                    <li><strong>Forbidden</strong>：禁止使用的關鍵字（紅色標籤）</li>
+                    <li><strong>Required</strong>：必須使用的關鍵字（綠色標籤）</li>
+                </ul>
+
+                <h3>5. 評分規則</h3>
+                <p>只有當題目的<strong>所有測試案例都通過</strong>時，才會獲得該題目的分數。</p>
+            </div>
+        </div>
+    </div>
+</div>

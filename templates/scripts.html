@@ -1,0 +1,294 @@
+{# JavaScript for the application #}
+<script>
+    let problems = [];
+    let currentProb = null;
+
+    async function init() {
+        const res = await fetch('/api/problems');
+        const data = await res.json();
+        document.title = data.app_title;
+        document.getElementById('page-title').textContent = data.app_title;
+        document.getElementById('app-description').textContent = data.app_description;
+        let metaDesc = document.querySelector('meta[name="description"]');
+        if (!metaDesc) {
+            metaDesc = document.createElement('meta');
+            metaDesc.name = 'description';
+            document.head.appendChild(metaDesc);
+        }
+        metaDesc.content = data.app_description;
+        problems = data.problems;
+        renderGrid();
+        updateStats();
+    }
+
+    function updateStats() {
+        let passed = 0, failed = 0, totalScore = 0, maxScore = 0;
+        problems.forEach(p => {
+            if (p.has_run) {
+                if (p.passed === p.total_tests && p.total_tests > 0) passed++; else failed++;
+            }
+            totalScore += p.score;
+            maxScore += p.total_points;
+        });
+        document.getElementById('stat-passed').textContent = passed;
+        document.getElementById('stat-failed').textContent = failed;
+        document.getElementById('stat-score').textContent = `${totalScore} / ${maxScore}`;
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = problems.map(p => {
+            let statusClass = '', barClass = '', statusHint = '';
+            if (p.has_run) {
+                if (p.passed === p.total_tests && p.total_tests > 0) {
+                    statusClass = 'pass';
+                } else {
+                    statusClass = 'fail';
+                    barClass = 'fail';
+                }
+                if (p.details && p.details.length > 0) {
+                    const ac = p.details.filter(d => d.status === 'PASS').length;
+                    const wa = p.details.filter(d => d.status === 'FAIL' && d.case !== 'Compilation' && d.case !== 'Keyword Check').length;
+                    const tle = p.details.filter(d => d.status === 'TLE').length;
+                    const ce = p.details.filter(d => d.status === 'FAIL' && d.case === 'Compilation').length;
+                    const kw = p.details.filter(d => d.status === 'FAIL' && d.case === 'Keyword Check').length;
+                    const err = p.details.filter(d => d.status === 'ERROR').length;
+                    const parts = [];
+                    if (ac > 0) parts.push(`AC:${ac}`);
+                    if (wa > 0) parts.push(`WA:${wa}`);
+                    if (tle > 0) parts.push(`TLE:${tle}`);
+                    if (ce > 0) parts.push(`CE:${ce}`);
+                    if (kw > 0) parts.push(`KW:${kw}`);
+                    if (err > 0) parts.push(`ERR:${err}`);
+                    statusHint = parts.join(' ');
+                }
+            }
+            const pct = p.total_tests > 0 ? (p.passed / p.total_tests) * 100 : 0;
+            const displayName = p.display_name || p.name;
+            return `
+                <div class="tile" onclick="openModal('${p.name}')">
+                    <div class="tile-header">
+                        <h3 class="tile-title">${displayName}</h3>
+                        <div class="status-indicator ${statusClass}" id="status-${p.name}"></div>
+                    </div>
+                    <div class="tile-content">
+                        <div class="progress-track">
+                            <div class="progress-bar ${barClass}" id="bar-${p.name}" style="width: ${pct}%"></div>
+                        </div>
+                        <div class="tile-meta">
+                            <span id="score-${p.name}">得分: ${p.score}/${p.total_points}</span>
+                            <span id="tests-${p.name}">測試: ${p.passed}/${p.total_tests}</span>
+                        </div>
+                        ${statusHint ? `<div class="tile-status-hint" id="hint-${p.name}">${statusHint}</div>` : `<div class="tile-status-hint" id="hint-${p.name}"></div>`}
+                    </div>
+                    <div class="tile-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="runProblem(event, '${p.name}')">
+                            <svg class="icon-play" viewBox="0 0 32 32"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>
+                        </button>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    async function runProblem(e, probName) {
+        if (e) e.stopPropagation();
+        const status = document.getElementById(`status-${probName}`);
+        if (status) status.className = 'status-indicator running';
+        if (currentProb === probName && document.getElementById('modal-overlay').classList.contains('is-visible')) {
+            document.getElementById('modal-body').innerHTML = `
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <p>執行測試中...</p>
+                </div>`;
+        }
+        try {
+            const res = await fetch(`/api/run/${probName}`, { method: 'POST' });
+            const data = await res.json();
+            const idx = problems.findIndex(p => p.name === probName);
+            if (idx !== -1) {
+                problems[idx].score = data.score;
+                problems[idx].passed = data.passed_count;
+                problems[idx].total_tests = data.total_count;
+                problems[idx].has_run = true;
+                problems[idx].details = data.details;
+            }
+            const pct = data.total_count > 0 ? (data.passed_count / data.total_count) * 100 : 0;
+            const barEl = document.getElementById(`bar-${probName}`);
+            barEl.style.width = `${pct}%`;
+            barEl.className = data.passed_count === data.total_count && data.total_count > 0 ? 'progress-bar' : 'progress-bar fail';
+            document.getElementById(`score-${probName}`).textContent = `得分: ${data.score}/${data.total_points}`;
+            document.getElementById(`tests-${probName}`).textContent = `測試: ${data.passed_count}/${data.total_count}`;
+            const newStatus = (data.fail_count === 0 && data.total_count > 0) ? 'pass' : 'fail';
+            document.getElementById(`status-${probName}`).className = `status-indicator ${newStatus}`;
+            updateStats();
+            if (currentProb === probName && document.getElementById('modal-overlay').classList.contains('is-visible')) {
+                openModal(probName);
+            }
+        } catch (err) {
+            console.error(err);
+            if (status) status.className = 'status-indicator fail';
+        }
+    }
+
+    async function runAll() {
+        for (const p of problems) {
+            await runProblem(null, p.name);
+        }
+    }
+
+    async function openModal(probName) {
+        currentProb = probName;
+        const p = problems.find(x => x.name === probName);
+        const displayName = p ? (p.display_name || p.name) : probName;
+        document.getElementById('modal-title').textContent = displayName;
+        document.getElementById('modal-overlay').classList.add('is-visible');
+        
+        // Only show loading if empty (first open), otherwise keep old content while refreshing? 
+        // Actually for simplicity, let's show loading for now or just keep it simple.
+        // If we are rerunning, we might want to keep the description visible. 
+        // But openModal is called by tile click too.
+        document.getElementById('modal-body').innerHTML = `
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <p>載入中...</p>
+            </div>`;
+        
+        try {
+            const infoRes = await fetch(`/api/problem/${probName}/info`);
+            const info = await infoRes.json();
+            
+            // Calculate status
+            let statusHtml = '';
+            if (p && p.has_run) {
+                const isPass = p.passed === p.total_tests && p.total_tests > 0;
+                const statusText = isPass ? '通過 (PASS)' : '失敗 (FAIL)';
+                const statusColor = isPass ? 'var(--cds-success)' : 'var(--cds-danger)';
+                statusHtml = `
+                    <div class="info-card" style="border-left: 4px solid ${statusColor}">
+                        <div class="info-card-label">狀態 (Status)</div>
+                        <div class="info-card-value" style="color: ${statusColor}; font-size: 1.25rem;">${statusText}</div>
+                    </div>
+                `;
+            } else {
+                statusHtml = `
+                    <div class="info-card">
+                        <div class="info-card-label">狀態 (Status)</div>
+                        <div class="info-card-value" style="font-size: 1.25rem; color: var(--cds-text-secondary);">未執行</div>
+                    </div>
+                `;
+            }
+
+            let html = '<div class="problem-info-section">';
+            html += '<div class="info-grid">';
+            html += `<div class="info-card"><div class="info-card-label">配分 (Points)</div><div class="info-card-value">${info.points}</div></div>`;
+            html += `<div class="info-card"><div class="info-card-label">限制時間 (Timeout)</div><div class="info-card-value">${info.timeout}s</div></div>`;
+            html += statusHtml;
+            html += '</div>';
+            
+            if ((info.forbidden && info.forbidden.length > 0) || (info.required && info.required.length > 0)) {
+                html += '<div class="keywords-section">';
+                if (info.forbidden && info.forbidden.length > 0) {
+                    html += '<div class="keywords-group"><span class="keywords-label">禁止使用的關鍵字 (Forbidden)</span><div class="keyword-tags">';
+                    info.forbidden.forEach(kw => { html += `<span class="keyword-tag forbidden">${kw}</span>`; });
+                    html += '</div></div>';
+                }
+                if (info.required && info.required.length > 0) {
+                    html += '<div class="keywords-group"><span class="keywords-label">必須使用的關鍵字 (Required)</span><div class="keyword-tags">';
+                    info.required.forEach(kw => { html += `<span class="keyword-tag required">${kw}</span>`; });
+                    html += '</div></div>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+            
+            if (info.description_md) {
+                html += '<div class="problem-description">' + renderMarkdown(info.description_md) + '</div>';
+            }
+            
+            html += '<div class="test-results-section"><div class="section-title">測試結果 (Test Results)</div>';
+            if (p && p.details) {
+                html += renderTestResults(p.details);
+            } else if (p && p.has_run) {
+                html += `<div style="text-align:center; padding: 32px;"><p>歷史紀錄無詳細日誌。</p><button class="btn" onclick="rerunCurrent()">重新執行以查看詳情</button></div>`;
+            } else {
+                html += `<div style="text-align:center; padding: 32px;"><p>尚未執行測試。</p><button class="btn" onclick="rerunCurrent()">執行測試</button></div>`;
+            }
+            html += '</div>';
+            
+            document.getElementById('modal-body').innerHTML = html;
+        } catch (err) {
+            console.error(err);
+            document.getElementById('modal-body').innerHTML = '<div style="text-align:center; padding: 32px;"><p>無法載入題目資訊。</p></div>';
+        }
+    }
+
+    function renderMarkdown(md) {
+        let html = md;
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        html = html.split('\n\n').map(p => {
+            if (p.startsWith('<h') || p.startsWith('<pre') || p.trim() === '') return p;
+            return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+        }).join('\n');
+        return html;
+    }
+
+    function renderTestResults(details) {
+        if (!details || details.length === 0) return '<p style="padding:16px">無測試資料。</p>';
+        return details.map((d, i) => {
+            const statusClass = d.status.toLowerCase();
+            let content = '';
+            if (d.status === 'PASS') {
+                content = `<div class="diff-block"><div class="diff-col"><h5>輸入 (Input)</h5><div class="diff-box">${d.input}</div></div><div class="diff-col"><h5>輸出 (Output)</h5><div class="diff-box">${d.output}</div></div></div>`;
+            } else if (d.status === 'FAIL' && d.case === 'Keyword Check') {
+                const forbiddenList = d.forbidden ? d.forbidden.join(', ') : '無';
+                const requiredList = d.required ? d.required.join(', ') : '無';
+                const violations = d.violations ? d.violations.join('<br>') : d.msg;
+                content = `<div class="keyword-info"><div><strong>禁止關鍵字:</strong> ${forbiddenList}</div><div><strong>必須關鍵字:</strong> ${requiredList}</div><div style="margin-top:8px"><strong>違規項目:</strong><br>${violations}</div></div>`;
+            } else if (d.status === 'FAIL' && d.case === 'Compilation') {
+                content = `<div class="compile-log"><strong>編譯錯誤日誌:</strong><br><br>${d.log || '無日誌'}</div>`;
+            } else if (d.status === 'FAIL') {
+                content = `<div class="diff-block"><div class="diff-col"><h5>預期輸出 (Expected)</h5><div class="diff-box">${d.expected}</div></div><div class="diff-col"><h5>實際輸出 (Got)</h5><div class="diff-box">${d.got}</div></div></div><div class="mt-1"><h5>輸入 (Input)</h5><div class="diff-box" style="background:#f4f4f4">${d.input}</div></div>`;
+            } else if (d.status === 'TLE') {
+                content = `<div>時間限制: ${d.timeout}s</div><div class="mt-1"><h5>輸入 (Input)</h5><div class="diff-box">${d.input}</div></div>`;
+            } else if (d.status === 'ERROR') {
+                content = `<div class="keyword-info"><strong>執行錯誤:</strong> ${d.msg}</div>`;
+            }
+            return `<div class="result-item"><div class="result-summary ${statusClass}" onclick="this.nextElementSibling.classList.toggle('is-open')">測試 #${i+1}: ${d.status}</div><div class="result-details">${content}</div></div>`;
+        }).join('');
+    }
+
+    function rerunCurrent() {
+        if (currentProb) runProblem(null, currentProb);
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('is-visible');
+    }
+
+    function openHelpModal() {
+        document.getElementById('help-modal-overlay').classList.add('is-visible');
+        // Load markdown content
+        fetch('/static/help.md')
+            .then(res => res.text())
+            .then(md => {
+                const html = renderMarkdown(md);
+                document.getElementById('help-modal-body').innerHTML = `<div class="help-content">${html}</div>`;
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('help-modal-body').innerHTML = '<p>Failed to load help.</p>';
+            });
+    }
+
+    function closeHelpModal() {
+        document.getElementById('help-modal-overlay').classList.remove('is-visible');
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', init);
+</script>
