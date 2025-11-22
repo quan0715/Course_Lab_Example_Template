@@ -5,6 +5,8 @@
 using namespace std;
 int main(){
     ios::sync_with_stdio(false);
+
+    
     cin.tie(nullptr);
     string s; bool first=true; bool any=false;
     while (getline(cin,s)){
@@ -15,3 +17,4 @@ int main(){
     if(any) cout<<"\n";
     return 0;
 }
+

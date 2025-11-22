@@ -5,11 +5,15 @@ using namespace std;
 int main(){
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
-    long long cnt=0; string w;
-    // Infinite loop - will cause timeout!
-    while (true) {
+    long long cnt=0; 
+    string w;
+    while(true){
+        cout << "errr";
+    }
+    while (cin >> w) {
         cnt++;
     }
     cout<<cnt<<"\n";
+    
     return 0;
 }

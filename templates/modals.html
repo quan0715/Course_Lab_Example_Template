@@ -2,19 +2,46 @@
 <!-- Problem Detail Modal -->
 <div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <div class="flex-row">
-                <span class="modal-title" id="modal-title">Problem Details</span>
-                <button class="btn btn-sm" id="modal-rerun-btn" onclick="rerunCurrent()">
-                    Rerun
-                    <svg class="icon-play" style="width:12px; height:12px; margin-left:6px;" viewBox="0 0 32 32"><path d="M12,10V22l10-6L12,10Z"/><path d="M16,2A14,14,0,1,0,30,16,14,14,0,0,0,16,2Zm0,26A12,12,0,1,1,28,16,12,12,0,0,1,16,28Z"/></svg>
+        <div class="modal-header" style="display: block;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <h2 class="modal-title" id="modal-title" style="font-size: 2rem; margin: 0;">Problem Title</h2>
+                <button class="modal-close" onclick="closeModal()" style="margin-top: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2"/></svg>
                 </button>
             </div>
-            <button class="modal-close" onclick="closeModal()">
-                <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M24 9.4L22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z"/></svg>
-            </button>
+            <div class="modal-tabs" style="margin-left: 0; border-bottom: 1px solid var(--cds-border-subtle);">
+                <button class="tab-btn active" onclick="switchTab('info')">題目資訊 (Info)</button>
+                <button class="tab-btn" onclick="switchTab('code')">程式碼 (Code)</button>
+                <button class="tab-btn" onclick="switchTab('results')">測試結果 (Results)</button>
+            </div>
         </div>
-        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-body">
+            <div id="tab-info" class="tab-content active">
+                <div id="modal-body"></div>
+            </div>
+            <div id="tab-code" class="tab-content" style="height: 100%; display: none; flex-direction: column;">
+                <div id="editor-container" style="flex: 1;"></div>
+                <div class="editor-toolbar">
+                    <button class="btn btn-secondary" onclick="loadCode(currentProb)">
+                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M16,2A14,14,0,1,0,30,16,14,14,0,0,0,16,2Zm0,26A12,12,0,1,1,28,16,12,12,0,0,1,16,28Z"/><path d="M16,10a1,1,0,0,0-1,1v5H11a1,1,0,0,0-1,1,1,1,0,0,0,1,1h4a1,1,0,0,0,1-1V11A1,1,0,0,0,16,10Z"/></svg>
+                        重新載入
+                    </button>
+                    <button class="btn btn-secondary" id="btn-save" onclick="saveCode()" disabled>
+                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M27.71,9.29l-5-5A1,1,0,0,0,22,4H6A2,2,0,0,0,4,6V26a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V10A1,1,0,0,0,27.71,9.29ZM12,6h8v4H12Zm8,20H12V18h8Zm2,0V18a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2v8H6V6h4v4a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V6.41l4,4V26Z"/></svg>
+                        儲存
+                    </button>
+                    <button class="btn" onclick="runFromEditor()">
+                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>
+                        執行測試
+                    </button>
+                </div>
+            </div>
+            <div id="tab-results" class="tab-content" style="display: none; padding: 24px;">
+                <div id="results-container">
+                    <div style="text-align:center; color: var(--cds-text-secondary);">尚未執行測試</div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -27,36 +54,8 @@
                 <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M24 9.4L22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z"/></svg>
             </button>
         </div>
-
-                <h3>2. 查看結果</h3>
-                <ul>
-                    <li><strong>總覽</strong>：主頁顯示每個題目的通過/失敗狀態和得分</li>
-                    <li><strong>詳細資訊</strong>：點擊題目卡片查看詳細的測試結果</li>
-                    <li><strong>測試案例</strong>：展開每個測試案例查看輸入、預期輸出和實際輸出</li>
-                </ul>
-
-                <h3>3. 狀態說明</h3>
-                <ul>
-                    <li><strong>AC (Accepted)</strong>：所有測試通過 ✅</li>
-                    <li><strong>WA (Wrong Answer)</strong>：答案錯誤 ❌</li>
-                    <li><strong>TLE (Time Limit Exceeded)</strong>：執行逾時 ⏱️</li>
-                    <li><strong>CE (Compilation Error)</strong>：編譯錯誤 🔧</li>
-                    <li><strong>KW (Keyword Check)</strong>：關鍵字檢查失敗 🔍</li>
-                    <li><strong>ERR (Runtime Error)</strong>：執行錯誤 ⚠️</li>
-                </ul>
-
-                <h3>4. 題目資訊</h3>
-                <p>在題目詳細頁面中，您可以看到：</p>
-                <ul>
-                    <li><strong>配分</strong>：該題目的總分</li>
-                    <li><strong>Timeout</strong>：執行時間限制</li>
-                    <li><strong>Forbidden</strong>：禁止使用的關鍵字（紅色標籤）</li>
-                    <li><strong>Required</strong>：必須使用的關鍵字（綠色標籤）</li>
-                </ul>
-
-                <h3>5. 評分規則</h3>
-                <p>只有當題目的<strong>所有測試案例都通過</strong>時，才會獲得該題目的分數。</p>
-            </div>
+        <div class="modal-body">
+            <div id="help-modal-body" class="help-content"></div>
         </div>
     </div>
 </div>

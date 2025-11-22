@@ -2,6 +2,11 @@
     <div class="header-top">
         <h1 id="page-title">程式測驗系統</h1>
         <div style="display: flex; gap: 12px; align-items: center;">
+            <button class="btn btn-ghost" onclick="toggleTheme()" title="切換深色模式" style="padding: 10px; min-height: 40px; border: 1px solid var(--cds-border-subtle);">
+                <svg id="theme-icon" width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
+                    <path d="M15,2A13,13,0,1,0,28,15,13,13,0,0,0,15,2Zm0,24A11,11,0,1,1,26,15,11,11,0,0,1,15,26ZM15,4a11,11,0,0,0,0,22V4Z"/>
+                </svg>
+            </button>
             <button class="btn btn-secondary" onclick="openHelpModal()" title="操作說明">說明 (Help)</button>
             <button class="btn" onclick="runAll()">執行所有測試
                 <svg class="icon-play" style="margin-left: 8px;" viewBox="0 0 32 32"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>

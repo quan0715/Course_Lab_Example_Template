@@ -1,9 +1,16 @@
 {# JavaScript for the application #}
+{# Updated: Tab switching fix applied #}
 <script>
     let problems = [];
     let currentProb = null;
 
     async function init() {
+        // Load theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-theme');
+        }
+
         const res = await fetch('/api/problems');
         const data = await res.json();
         document.title = data.app_title;
@@ -19,6 +26,17 @@
         problems = data.problems;
         renderGrid();
         updateStats();
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-theme');
+        const isDark = document.body.classList.contains('dark-theme');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        
+        // Update editor theme if it exists
+        if (editor && window.monaco) {
+            monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
+        }
     }
 
     function updateStats() {
@@ -38,40 +56,26 @@
     function renderGrid() {
         const grid = document.getElementById('grid');
         grid.innerHTML = problems.map(p => {
-            let statusClass = '', barClass = '', statusHint = '';
-            if (p.has_run) {
-                if (p.passed === p.total_tests && p.total_tests > 0) {
-                    statusClass = 'pass';
-                } else {
-                    statusClass = 'fail';
-                    barClass = 'fail';
-                }
-                if (p.details && p.details.length > 0) {
-                    const ac = p.details.filter(d => d.status === 'PASS').length;
-                    const wa = p.details.filter(d => d.status === 'FAIL' && d.case !== 'Compilation' && d.case !== 'Keyword Check').length;
-                    const tle = p.details.filter(d => d.status === 'TLE').length;
-                    const ce = p.details.filter(d => d.status === 'FAIL' && d.case === 'Compilation').length;
-                    const kw = p.details.filter(d => d.status === 'FAIL' && d.case === 'Keyword Check').length;
-                    const err = p.details.filter(d => d.status === 'ERROR').length;
-                    const parts = [];
-                    if (ac > 0) parts.push(`AC:${ac}`);
-                    if (wa > 0) parts.push(`WA:${wa}`);
-                    if (tle > 0) parts.push(`TLE:${tle}`);
-                    if (ce > 0) parts.push(`CE:${ce}`);
-                    if (kw > 0) parts.push(`KW:${kw}`);
-                    if (err > 0) parts.push(`ERR:${err}`);
-                    statusHint = parts.join(' ');
-                }
-            }
+            const statusClass = p.has_run ? (p.passed === p.total_tests && p.total_tests > 0 ? 'pass' : 'fail') : 'pending';
+            const statusText = p.has_run ? (p.passed === p.total_tests && p.total_tests > 0 ? '通過' : '失敗') : '未執行';
+            const barClass = p.passed === p.total_tests && p.total_tests > 0 ? 'progress-bar' : 'progress-bar fail';
             const pct = p.total_tests > 0 ? (p.passed / p.total_tests) * 100 : 0;
-            const displayName = p.display_name || p.name;
+            
+            let statusHint = '';
+            if (p.has_run && p.passed !== p.total_tests) {
+                if (p.details.some(d => d.status === 'TLE')) statusHint = '⚠️ 逾時 (TLE)';
+                else if (p.details.some(d => d.status === 'ERROR')) statusHint = '⚠️ 執行錯誤 (Error)';
+                else if (p.details.some(d => d.case === 'Compilation')) statusHint = '🔧 編譯錯誤 (CE)';
+                else if (p.details.some(d => d.case === 'Keyword Check')) statusHint = '🔍 關鍵字錯誤 (KW)';
+            }
+
             return `
                 <div class="tile" onclick="openModal('${p.name}')">
                     <div class="tile-header">
-                        <h3 class="tile-title">${displayName}</h3>
-                        <div class="status-indicator ${statusClass}" id="status-${p.name}"></div>
+                        <div class="tile-title">${p.display_name || p.name}</div>
+                        <div class="status-indicator ${statusClass}" id="status-${p.name}">${statusText}</div>
                     </div>
-                    <div class="tile-content">
+                    <div class="tile-body">
                         <div class="progress-track">
                             <div class="progress-bar ${barClass}" id="bar-${p.name}" style="width: ${pct}%"></div>
                         </div>
@@ -81,12 +85,8 @@
                         </div>
                         ${statusHint ? `<div class="tile-status-hint" id="hint-${p.name}">${statusHint}</div>` : `<div class="tile-status-hint" id="hint-${p.name}"></div>`}
                     </div>
-                    <div class="tile-actions">
-                        <button class="btn btn-ghost btn-sm" onclick="runProblem(event, '${p.name}')">
-                            <svg class="icon-play" viewBox="0 0 32 32"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>
-                        </button>
-                    </div>
-                </div>`;
+                </div>
+            `;
         }).join('');
     }
 
@@ -143,6 +143,17 @@
         document.getElementById('modal-title').textContent = displayName;
         document.getElementById('modal-overlay').classList.add('is-visible');
         
+        // Reset to info tab
+        switchTab('info');
+        
+        // Reset save button
+        document.getElementById('btn-save').disabled = true;
+        document.getElementById('btn-save').classList.add('btn-secondary');
+        document.getElementById('btn-save').classList.remove('btn');
+        
+        // Reset results
+        document.getElementById('results-container').innerHTML = '<div style="text-align:center; color: var(--cds-text-secondary);">尚未執行測試</div>';
+        
         // Only show loading if empty (first open), otherwise keep old content while refreshing? 
         // Actually for simplicity, let's show loading for now or just keep it simple.
         // If we are rerunning, we might want to keep the description visible. 
@@ -181,7 +192,7 @@
             let html = '<div class="problem-info-section">';
             html += '<div class="info-grid">';
             html += `<div class="info-card"><div class="info-card-label">配分 (Points)</div><div class="info-card-value">${info.points}</div></div>`;
-            html += `<div class="info-card"><div class="info-card-label">限制時間 (Timeout)</div><div class="info-card-value">${info.timeout}s</div></div>`;
+            html += `<div class="info-card"><div class="info-card-label">限制時間 (Timeout)</div><div class="info-card-value">${info.timeout || 1}s</div></div>`;
             html += statusHtml;
             html += '</div>';
             
@@ -204,16 +215,6 @@
             if (info.description_md) {
                 html += '<div class="problem-description">' + renderMarkdown(info.description_md) + '</div>';
             }
-            
-            html += '<div class="test-results-section"><div class="section-title">測試結果 (Test Results)</div>';
-            if (p && p.details) {
-                html += renderTestResults(p.details);
-            } else if (p && p.has_run) {
-                html += `<div style="text-align:center; padding: 32px;"><p>歷史紀錄無詳細日誌。</p><button class="btn" onclick="rerunCurrent()">重新執行以查看詳情</button></div>`;
-            } else {
-                html += `<div style="text-align:center; padding: 32px;"><p>尚未執行測試。</p><button class="btn" onclick="rerunCurrent()">執行測試</button></div>`;
-            }
-            html += '</div>';
             
             document.getElementById('modal-body').innerHTML = html;
         } catch (err) {
@@ -252,7 +253,7 @@
             } else if (d.status === 'FAIL' && d.case === 'Compilation') {
                 content = `<div class="compile-log"><strong>編譯錯誤日誌:</strong><br><br>${d.log || '無日誌'}</div>`;
             } else if (d.status === 'FAIL') {
-                content = `<div class="diff-block"><div class="diff-col"><h5>預期輸出 (Expected)</h5><div class="diff-box">${d.expected}</div></div><div class="diff-col"><h5>實際輸出 (Got)</h5><div class="diff-box">${d.got}</div></div></div><div class="mt-1"><h5>輸入 (Input)</h5><div class="diff-box" style="background:#f4f4f4">${d.input}</div></div>`;
+                content = `<div class="diff-block"><div class="diff-col"><h5>預期輸出 (Expected)</h5><div class="diff-box">${d.expected}</div></div><div class="diff-col"><h5>實際輸出 (Got)</h5><div class="diff-box">${d.got}</div></div></div><div class="mt-1"><h5>輸入 (Input)</h5><div class="diff-box">${d.input}</div></div>`;
             } else if (d.status === 'TLE') {
                 content = `<div>時間限制: ${d.timeout}s</div><div class="mt-1"><h5>輸入 (Input)</h5><div class="diff-box">${d.input}</div></div>`;
             } else if (d.status === 'ERROR') {
@@ -289,6 +290,211 @@
         document.getElementById('help-modal-overlay').classList.remove('is-visible');
     }
 
+    // Editor variables
+    let editor = null;
+    let editorLoaded = false;
+    let editorInitializing = false;
+
+    function initEditor() {
+        if (editorLoaded || editorInitializing) return;
+        editorInitializing = true;
+        
+        const isDark = document.body.classList.contains('dark-theme');
+        
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: '// Loading...',
+                language: 'cpp',
+                theme: isDark ? 'vs-dark' : 'vs',
+                automaticLayout: true,
+                minimap: { enabled: false }
+            });
+            
+            // Enable save button on change
+            editor.onDidChangeModelContent(() => {
+                document.getElementById('btn-save').disabled = false;
+                document.getElementById('btn-save').classList.remove('btn-secondary');
+                document.getElementById('btn-save').classList.add('btn');
+            });
+            
+            // Mark editor as loaded FIRST
+            editorLoaded = true;
+            editorInitializing = false;
+            
+            // Then load code
+            if (currentProb) {
+                console.log('Editor initialized, loading code for:', currentProb);
+                loadCode(currentProb);
+            }
+        });
+    }
+
+    function switchTab(tab) {
+        // Remove active from all tabs and contents
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+            content.style.display = 'none';  // 明確隱藏所有 tab
+        });
+        
+        // Activate selected tab button
+        document.querySelector(`.tab-btn[onclick*="'${tab}'"]`).classList.add('active');
+        const tabContent = document.getElementById(`tab-${tab}`);
+        tabContent.classList.add('active');
+        
+        // Handle specific tab content display
+        if (tab === 'info') {
+            tabContent.style.display = 'block';
+        } else if (tab === 'code') {
+            // Code tab needs flex layout for editor
+            tabContent.style.display = 'flex';
+            
+            if (!editorLoaded && !editorInitializing) {
+                console.log('Initializing editor...');
+                initEditor();
+            } else if (editorLoaded && editor) {
+                console.log('Editor already loaded, updating layout');
+                editor.layout();
+                // Always reload code when switching to code tab
+                if (currentProb) {
+                    console.log('Reloading code for:', currentProb);
+                    loadCode(currentProb);
+                }
+            }
+        } else if (tab === 'results') {
+            // Results tab needs block layout
+            tabContent.style.display = 'block';
+            console.log('Switched to results tab');
+        }
+    }
+
+    async function loadCode(probName) {
+        if (!editor) {
+            console.error('Editor not ready yet');
+            return;
+        }
+        try {
+            console.log('Fetching code for:', probName);
+            const res = await fetch(`/api/code/${probName}`);
+            const data = await res.json();
+            console.log('Code fetched, length:', data.content ? data.content.length : 0);
+            if (data.content) {
+                editor.setValue(data.content);
+                // Reset save button
+                document.getElementById('btn-save').disabled = true;
+                document.getElementById('btn-save').classList.add('btn-secondary');
+                document.getElementById('btn-save').classList.remove('btn');
+                console.log('Code loaded successfully');
+            }
+        } catch (err) {
+            console.error('Failed to load code:', err);
+            editor.setValue('// Failed to load code');
+        }
+    }
+
+    async function saveCode() {
+        if (!editor || !currentProb) return;
+        const content = editor.getValue();
+        try {
+            const res = await fetch(`/api/code/${currentProb}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content })
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Disable save button
+                document.getElementById('btn-save').disabled = true;
+                document.getElementById('btn-save').classList.add('btn-secondary');
+                document.getElementById('btn-save').classList.remove('btn');
+            } else {
+                alert('儲存失敗: ' + data.error);
+            }
+        } catch (err) {
+            alert('儲存失敗: ' + err);
+        }
+    }
+    
+    async function runFromEditor() {
+        if (!document.getElementById('btn-save').disabled) {
+            await saveCode();
+        }
+        switchTab('results');
+        document.getElementById('results-container').innerHTML = `
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <p>執行測試中...</p>
+            </div>`;
+            
+        try {
+            // Add timeout to prevent indefinite loading
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+            
+            const res = await fetch(`/api/run/${currentProb}`, { 
+                method: 'POST',
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            
+            // Update the problem data
+            const p = problems.find(x => x.name === currentProb);
+            if (p) {
+                p.score = data.score;
+                p.total_points = data.total_points;
+                p.passed = data.passed_count;
+                p.total_tests = data.total_count;
+                p.has_run = true;
+                p.details = data.details;
+            }
+            
+            // Update stats
+            const barEl = document.getElementById(`bar-${currentProb}`);
+            if (barEl) {
+                const pct = data.total_count > 0 ? (data.passed_count / data.total_count) * 100 : 0;
+                barEl.style.width = `${pct}%`;
+                barEl.className = data.passed_count === data.total_count && data.total_count > 0 ? 'progress-bar' : 'progress-bar fail';
+                document.getElementById(`score-${currentProb}`).textContent = `得分: ${data.score}/${data.total_points}`;
+                document.getElementById(`tests-${currentProb}`).textContent = `測試: ${data.passed_count}/${data.total_count}`;
+                const newStatus = (data.fail_count === 0 && data.total_count > 0) ? 'pass' : 'fail';
+                const statusText = newStatus === 'pass' ? '通過' : '失敗';
+                const statusIndicator = document.getElementById(`status-${currentProb}`);
+                statusIndicator.className = `status-indicator ${newStatus}`;
+                statusIndicator.textContent = statusText;
+                updateStats();
+            }
+            
+            // Render results in Results tab (always, even if empty or error)
+            if (data.details && data.details.length > 0) {
+                document.getElementById('results-container').innerHTML = renderTestResults(data.details);
+            } else {
+                document.getElementById('results-container').innerHTML = '<div style="text-align:center; padding: 32px; color: var(--cds-text-secondary);">沒有測試結果</div>';
+            }
+            
+        } catch (err) {
+            console.error(err);
+            let errorMsg = '執行失敗';
+            if (err.name === 'AbortError') {
+                errorMsg = '執行逾時（超過30秒）';
+            } else if (err.message) {
+                errorMsg = '執行失敗: ' + err.message;
+            }
+            document.getElementById('results-container').innerHTML = '<p style="color:var(--cds-danger); text-align:center; padding: 32px;">' + errorMsg + '</p>';
+        }
+    }
+
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', init);
+    
+    // Handle resize
+    window.addEventListener('resize', () => {
+        if (editor) editor.layout();
+    });
 </script>

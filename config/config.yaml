@@ -5,9 +5,11 @@ problems:
   p1:
     name: Sum Sum
     points: 25
+    timeout: 1
   p2:
     name: Array Operations
     points: 25
+    timeout: 1
     cases:
       '01': 10
       '02': 10
@@ -15,9 +17,11 @@ problems:
   p3:
     name: String Manipulation
     points: 25
+    timeout: 1
   p4:
     name: Basic I/O
     points: 25
+    timeout: 1
   p5:
     name: Factorial (Recursion)
     points: 25
