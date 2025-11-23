@@ -13,6 +13,7 @@ int main(){
     while (cin >> w) {
         cnt++;
     }
+    
     cout<<cnt<<"\n";
     
     return 0;
