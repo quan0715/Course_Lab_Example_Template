@@ -490,6 +490,63 @@
         }
     }
 
+    // Git Push function - 顯示確認 Modal
+    function pushToGitHub() {
+        openPushConfirmModal();
+    }
+    
+    // 開啟 Push 確認 Modal
+    function openPushConfirmModal() {
+        const modal = document.getElementById('push-confirm-modal');
+        modal.classList.add('is-visible');
+    }
+    
+    // 關閉 Push 確認 Modal
+    function closePushConfirmModal() {
+        const modal = document.getElementById('push-confirm-modal');
+        modal.classList.remove('is-visible');
+    }
+    
+    // 實際執行 Push
+    async function confirmPushToGitHub() {
+        // 關閉 Modal
+        closePushConfirmModal();
+        
+        // 找到 Push 按鈕
+        const btn = document.querySelector('.btn-git');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `
+            <div class="spinner" style="width: 16px; height: 16px; border-width: 2px; margin-right: 8px;"></div>
+            推送中...
+        `;
+        
+        try {
+            const response = await fetch('/api/git_push', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    commit_message: 'GUI 自動提交'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(`✅ 成功！\n\n${result.message}\n\n詳細資訊:\n${result.details || ''}`);
+            } else {
+                alert(`❌ 失敗\n\n${result.error}\n\n${result.details || ''}\n\n請檢查:\n1. 是否已設定 git remote\n2. 是否有網路連線\n3. 是否有權限 push 到遠端`);
+            }
+        } catch (error) {
+            alert(`❌ 錯誤\n\n無法連接到伺服器: ${error.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    }
+
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', init);
     

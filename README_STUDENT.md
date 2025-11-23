@@ -188,6 +188,14 @@ python3 run_tests.py --gui
    - 每個測試案例的結果
    - 您的輸出 vs 正確輸出
    - 編譯或執行錯誤訊息
+4. **點擊「Push to GitHub」按鈕** - 一鍵推送程式碼到 GitHub
+   - 系統會彈出確認視窗，說明即將執行的操作
+   - 確認後自動執行：
+     - 檢查是否有程式碼變更
+     - `git add src/*.cpp`
+     - `git commit -m "GUI 自動提交"`
+     - `git push`
+   - ⚠️ 如果沒有修改任何 `.cpp` 檔案，系統會拒絕提交
 
 ### 關閉伺服器
 
@@ -518,7 +526,29 @@ git config --global user.email "您的Email"
 
 ### 作業繳交步驟
 
-#### 步驟 1：完成程式碼
+#### 方法一：使用網頁介面（最簡單！）
+
+1. **啟動網頁介面**：
+
+   ```bash
+   python3 run_tests.py --gui
+   ```
+
+2. **執行測試**：點擊「執行所有測試」按鈕，確認全部通過
+
+3. **推送到 GitHub**：
+
+   - 點擊「Push to GitHub」按鈕
+   - 閱讀確認視窗的說明
+   - 點擊「確認推送」按鈕
+   - 等待推送完成
+   - 看到「✅ 成功」訊息就完成了！
+
+4. **檢查自動評分**：前往 GitHub repository 查看 Actions 結果
+
+#### 方法二：使用命令列
+
+##### 步驟 1：完成程式碼
 
 確保您的程式通過所有測試：
 
@@ -530,7 +560,7 @@ python3 run_tests.py
 python3 run_tests.py --gui
 ```
 
-#### 步驟 2：查看修改的檔案
+##### 步驟 2：查看修改的檔案
 
 ```bash
 # 查看哪些檔案被修改了
@@ -541,7 +571,7 @@ git status
 
 ⚠️ **如果看到其他檔案被修改，請不要提交它們！**
 
-#### 步驟 3：加入要提交的檔案
+##### 步驟 3：加入要提交的檔案
 
 ```bash
 # 加入所有 src/ 目錄下的 .cpp 檔案
@@ -554,7 +584,7 @@ git add src/p2.cpp
 
 **不要使用 `git add .` 或 `git add -A`**，因為可能會加入不該提交的檔案！
 
-#### 步驟 4：提交變更
+##### 步驟 4：提交變更
 
 ```bash
 # 提交並附上說明訊息
@@ -564,7 +594,7 @@ git commit -m "完成 p1 和 p2"
 git commit -m "修正 p1 的邊界條件處理"
 ```
 
-#### 步驟 5：推送到 GitHub
+##### 步驟 5：推送到 GitHub
 
 ```bash
 # 推送到您的 GitHub repository
@@ -577,7 +607,7 @@ git push origin main
 git push origin master
 ```
 
-#### 步驟 6：檢查自動評分結果
+##### 步驟 6：檢查自動評分結果
 
 1. 前往您的 GitHub repository 頁面
 2. 點擊上方的 **"Actions"** 標籤

@@ -152,6 +152,24 @@
     .btn-secondary:hover {background-color: var(--cds-interactive); color: #fff;}
     .btn-secondary:disabled {border-color: var(--cds-disabled); color: var(--cds-disabled); background-color: transparent; cursor: not-allowed;}
     
+    .btn-git {
+        background-color: #24a148; /* GitHub 綠色 */
+        color: #fff;
+        border: none;
+    }
+    .btn-git:hover {
+        background-color: #1e8538; /* 稍深的綠色 */
+        box-shadow: 0 2px 6px rgba(36, 161, 72, 0.3);
+    }
+    .btn-git:active {
+        background-color: #17662b;
+    }
+    .btn-git:disabled {
+        background-color: #8d8d8d;
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+    
     .btn-ghost {background-color:transparent; color:var(--cds-interactive); padding: 11px 16px;}
     .btn-ghost:hover {background-color: var(--cds-layer-hover);}
     
@@ -160,7 +178,8 @@
     .icon-play {width:16px; height:16px; fill:currentColor;}
     .modal-overlay {position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(22,22,22,0.5); display:flex; align-items:center; justify-content:center; opacity:0; visibility:hidden; transition:opacity 240ms; z-index:9000;}
     .modal-overlay.is-visible {opacity:1; visibility:visible;}
-    .modal {background-color:var(--cds-layer); width:100%; max-width:800px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 0 0 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.1);}
+    .modal {background-color:var(--cds-layer); width:100%; max-width:800px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 0 0 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.1); border-radius: 0;}
+    body.dark-theme .modal {box-shadow: 0 0 0 1px rgba(255,255,255,0.1),0 4px 8px rgba(0,0,0,0.3);}
     .modal-header {
         padding: 16px; 
         display: flex; 

@@ -212,4 +212,150 @@ def start_server():
             "required": required
         })
 
+    @app.route('/api/git_push', methods=['POST'])
+    def git_push():
+        """處理 Git Push 請求"""
+        import subprocess
+        
+        data = request.get_json()
+        commit_message = data.get('commit_message', '更新程式碼')
+        
+        try:
+            # 檢查是否在 git repository 中
+            result = subprocess.run(
+                ['git', 'rev-parse', '--is-inside-work-tree'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode != 0:
+                return jsonify({
+                    'success': False,
+                    'error': '這不是一個 Git repository',
+                    'details': '請確認專案目錄已經初始化 Git'
+                })
+            
+            # 檢查 git remote
+            result = subprocess.run(
+                ['git', 'remote', '-v'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if not result.stdout.strip():
+                return jsonify({
+                    'success': False,
+                    'error': '沒有設定 Git remote',
+                    'details': '請先設定遠端 repository:\ngit remote add origin <URL>'
+                })
+            
+            # 先檢查 src/*.cpp 是否有變更
+            import glob
+            cpp_files = glob.glob('src/*.cpp')
+            
+            if not cpp_files:
+                return jsonify({
+                    'success': False,
+                    'error': '沒有找到 .cpp 檔案',
+                    'details': 'src/ 目錄中沒有 .cpp 檔案'
+                })
+            
+            # 檢查這些檔案是否有變更（包括 modified 和 untracked）
+            result = subprocess.run(
+                ['git', 'status', '--porcelain'] + cpp_files,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            # 如果沒有任何變更，不允許 commit
+            if not result.stdout.strip():
+                return jsonify({
+                    'success': False,
+                    'error': '沒有需要提交的變更',
+                    'details': 'src/ 目錄中的 .cpp 檔案沒有任何修改'
+                })
+            
+            # git add src/*.cpp（加入所有 src 目錄下的 .cpp 檔案）
+            result = subprocess.run(
+                ['git', 'add'] + cpp_files,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode != 0:
+                return jsonify({
+                    'success': False,
+                    'error': 'git add 失敗',
+                    'details': result.stderr or result.stdout
+                })
+            
+            # git commit
+            result = subprocess.run(
+                ['git', 'commit', '-m', commit_message],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode != 0:
+                # 可能沒有變更或其他錯誤
+                if 'nothing to commit' in result.stdout:
+                    return jsonify({
+                        'success': True,
+                        'message': '沒有需要提交的變更',
+                        'details': result.stdout
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Commit 失敗',
+                        'details': result.stderr or result.stdout
+                    })
+            
+            commit_info = result.stdout
+            
+            # git push
+            result = subprocess.run(
+                ['git', 'push'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode != 0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Push 失敗',
+                    'details': result.stderr or result.stdout
+                })
+            
+            return jsonify({
+                'success': True,
+                'message': '成功推送到 GitHub！',
+                'details': f"Commit: {commit_info}\n\nPush: {result.stderr or result.stdout}"
+            })
+            
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                'success': False,
+                'error': 'Git 操作逾時',
+                'details': '請檢查網路連線或手動執行 git push'
+            })
+        except FileNotFoundError:
+            return jsonify({
+                'success': False,
+                'error': '找不到 Git',
+                'details': '請確認已安裝 Git: https://git-scm.com/'
+            })
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'error': '未知錯誤',
+                'details': str(e)
+            })
+
     app.run(host='0.0.0.0', port=8080, debug=True)
