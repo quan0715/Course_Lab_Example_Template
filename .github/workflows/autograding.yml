@@ -1,12 +1,7 @@
 name: Autograding
 
 on:
-  push:
-    branches:
-      - main
-      - master
-  pull_request:
-  workflow_dispatch:
+  workflow_dispatch:  # 手動觸發
 
 jobs:
   test:
@@ -89,7 +84,7 @@ jobs:
 
       - name: 上傳測試報告
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: |
@@ -165,4 +160,3 @@ jobs:
             echo "⚠️ 無法判斷測試結果"
             exit 1
           fi
-
