@@ -10,5 +10,7 @@ int main(){
     string w;
     cin >> w;
     cout << w << "\n";
+
+    
     return 0;
 }
