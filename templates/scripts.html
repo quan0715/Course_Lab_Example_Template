@@ -212,8 +212,8 @@
             }
             html += '</div>';
             
-            if (info.description_md) {
-                html += '<div class="problem-description">' + renderMarkdown(info.description_md) + '</div>';
+            if (info.description_html) {
+                html += '<div class="problem-description">' + info.description_html + '</div>';
             }
             
             document.getElementById('modal-body').innerHTML = html;

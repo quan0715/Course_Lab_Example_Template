@@ -1,0 +1,25 @@
+name: Lab Example CI
+on:
+  push:
+  pull_request:
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      # 沒有 install mingw 步驟，直接印版本確認即可
+      - name: Show g++ version
+        run: g++ --version
+      - name: Run Windows batch test
+        shell: cmd
+        run: run_tests.bat
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show g++ version
+        run: g++ --version
+      - name: Make test.sh executable
+        run: chmod +x run_tests.sh
+      - name: Run Linux shell test
+        run: ./run_tests.sh

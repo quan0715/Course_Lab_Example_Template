@@ -97,39 +97,58 @@ def check_keywords_detailed(config, prob, src_file):
     return result
 
 def run_test_case(bin_path, input_file, expected_file, timeout_sec):
-    try:
-        with open(input_file, 'r') as fin:
-            input_data = fin.read()
-            
-        # Run process
-        proc = subprocess.run(
-            [bin_path],
-            input=input_data,
-            capture_output=True,
-            timeout=timeout_sec,
-            text=True # Expect text output
-        )
-        
-        if proc.returncode != 0:
-            return "Runtime Error", proc.stderr
-            
-        # Compare output
-        got = proc.stdout
-        # Normalize line endings for comparison
-        got = got.replace('\r\n', '\n')
-        
-        with open(expected_file, 'r') as fexp:
-            expected = fexp.read().replace('\r\n', '\n')
-        
-        if got == expected:
-            return "PASS", None
-        else:
-            return "FAIL", (expected, got)
+    import tempfile
+    
+    # Create temp files for stdout and stderr
+    # Open in text mode ('w+') to match Popen text=True
+    with tempfile.TemporaryFile(mode='w+') as f_out, tempfile.TemporaryFile(mode='w+') as f_err:
+        try:
+            with open(input_file, 'r') as fin:
+                # Use Popen instead of run to have better control
+                proc = subprocess.Popen(
+                    [bin_path],
+                    stdin=fin,
+                    stdout=f_out,
+                    stderr=f_err,
+                    text=True,
+                    encoding='utf-8',
+                    errors='replace'
+                )
                 
-    except subprocess.TimeoutExpired:
-        return "TLE", None
-    except Exception as e:
-        return "Error", str(e)
+            try:
+                proc.wait(timeout=timeout_sec)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait() # Ensure it's dead
+                return "TLE", None
+            
+            if proc.returncode != 0:
+                f_err.seek(0)
+                content = f_err.read()
+                err_output = content.decode('utf-8', errors='replace') if isinstance(content, bytes) else content
+                return "Runtime Error", err_output
+                
+            # Compare output
+            f_out.seek(0)
+            # Read with limit to avoid memory issues if output is huge (though TLE should catch infinite loops)
+            # But if it finished within time but produced 1GB of data, we don't want to crash.
+            got = f_out.read(1024 * 1024) # Limit to 1MB
+            if f_out.read(1): # Check if there's more
+                got += "\n... (output truncated)"
+            
+            # Normalize line endings
+            got = got.replace('\r\n', '\n')
+            
+            with open(expected_file, 'r') as fexp:
+                expected = fexp.read().replace('\r\n', '\n')
+            
+            if got.strip() == expected.strip(): # Use strip to be lenient on trailing newlines
+                return "PASS", None
+            else:
+                return "FAIL", (expected, got)
+                    
+        except Exception as e:
+            return "Error", str(e)
 
 def run_problem(prob, config, capture_logs=False):
     prefixes = get_prefixes()

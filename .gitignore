@@ -42,7 +42,6 @@ tmp/
 *.actual
 *.expect
 *.diff
-*.out
 
 # Python virtual environments
 venv/

@@ -231,6 +231,105 @@
     .problem-description pre code {background-color:transparent; color:inherit; padding:0; border:none;}
     .problem-description ul, .problem-description ol {margin:12px 0; padding-left:24px;}
     .problem-description li {margin:6px 0;}
+    /* Nested lists */
+    .problem-description ul ul, .problem-description ol ol, .problem-description ul ol, .problem-description ol ul {
+        margin: 4px 0;
+    }
+    
+    /* Blockquote */
+    .problem-description blockquote {
+        margin: 16px 0;
+        padding: 8px 16px;
+        border-left: 4px solid var(--cds-interactive);
+        background-color: var(--cds-layer);
+        color: var(--cds-text-secondary);
+        font-style: italic;
+    }
+    
+    /* Horizontal Rule */
+    .problem-description hr {
+        border: 0;
+        border-top: 1px solid var(--cds-border-subtle);
+        margin: 24px 0;
+    }
+    
+    /* Links */
+    .problem-description a {
+        color: var(--cds-interactive);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .problem-description a:hover {
+        color: var(--cds-interactive-hover);
+        text-decoration: underline;
+    }
+    
+    /* Images */
+    .problem-description img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        border: 1px solid var(--cds-border-subtle);
+        margin: 12px 0;
+    }
+    
+    /* Inline styles */
+    .problem-description strong { font-weight: 600; color: var(--cds-text-primary); }
+    .problem-description em { font-style: italic; }
+    
+    /* Headers h4-h6 */
+    .problem-description h4 { font-size: 1rem; margin: 16px 0 8px 0; font-weight: 600; color: var(--cds-text-primary); }
+    .problem-description h5 { font-size: 0.875rem; margin: 12px 0 6px 0; font-weight: 600; color: var(--cds-text-primary); }
+    .problem-description h6 { font-size: 0.75rem; margin: 12px 0 6px 0; font-weight: 600; color: var(--cds-text-secondary); text-transform: uppercase; }
+    
+    /* Table Styling */
+    .problem-description table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background-color: var(--cds-layer);
+        border: 1px solid var(--cds-border-subtle);
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .problem-description thead {
+        background-color: var(--cds-interactive);
+        color: white;
+    }
+    .problem-description th {
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--cds-border-subtle);
+    }
+    .problem-description td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--cds-border-subtle);
+        color: var(--cds-text-primary);
+        font-size: 0.875rem;
+    }
+    .problem-description tbody tr {
+        transition: background-color 0.2s;
+    }
+    .problem-description tbody tr:nth-child(even) {
+        background-color: var(--cds-background);
+    }
+    .problem-description tbody tr:hover {
+        background-color: rgba(15, 98, 254, 0.08);
+    }
+    .problem-description tbody tr:last-child td {
+        border-bottom: none;
+    }
+    body.dark-theme .problem-description table {
+        box-shadow: none;
+    }
+    body.dark-theme .problem-description tbody tr:hover {
+        background-color: rgba(15, 98, 254, 0.15);
+    }
     .test-results-section {padding:24px; background-color:var(--cds-background);}
     .section-title {font-size:0.875rem; font-weight:600; text-transform:uppercase; color:var(--cds-text-secondary); margin-bottom:16px; letter-spacing:0.5px;}
     .result-item {border-bottom:1px solid var(--cds-border-subtle); margin-bottom:0;}

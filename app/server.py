@@ -186,9 +186,11 @@ def start_server():
         desc_content = ""
         if os.path.exists(desc_file):
             with open(desc_file, 'r', encoding='utf-8') as f:
-                desc_content = f.read()
+                desc_md = f.read()
+                # Convert markdown to HTML using the markdown library
+                desc_content = markdown.markdown(desc_md, extensions=['fenced_code', 'tables'])
         else:
-            desc_content = f"# {prob}\nNo description available."
+            desc_content = markdown.markdown(f"# {prob}\nNo description available.", extensions=['fenced_code', 'tables'])
         
         # Get forbidden and required keywords
         forbidden = []
@@ -205,7 +207,7 @@ def start_server():
         return jsonify({
             "name": prob,
             "display_name": get_problem_name(config, prob),
-            "description_md": desc_content,
+            "description_html": desc_content,
             "points": get_problem_points(config, prob),
             "timeout": get_timeout(config, prob),
             "forbidden": forbidden,
