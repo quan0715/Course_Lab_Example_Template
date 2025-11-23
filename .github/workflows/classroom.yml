@@ -1,0 +1,90 @@
+name: Autograding Tests
+on:
+  push:  # 自動觸發（每次 push）
+  workflow_dispatch:  # 手動觸發
+  repository_dispatch:  # GitHub Classroom 觸發
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install C++ compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++
+
+      # Problem 1: Calculator
+      - name: Test p1 - Calculator
+        id: test-p1
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: p1-calculator
+          setup-command: ''
+          command: python3 run_tests.py p1 && cat build/p1.score | awk '{print $1"/"$2}'
+          timeout: 10
+          max-score: 100
+
+      # Problem 2: Recursion Sum
+      - name: Test p2 - Recursion Sum
+        id: test-p2
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: p2-recursion-sum
+          setup-command: ''
+          command: python3 run_tests.py p2 && cat build/p2.score | awk '{print $1"/"$2}'
+          timeout: 10
+          max-score: 100
+
+      # Problem 3: Climbing Stairs
+      - name: Test p3 - Climbing Stairs
+        id: test-p3
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: p3-climbing-stairs
+          setup-command: ''
+          command: python3 run_tests.py p3 && cat build/p3.score | awk '{print $1"/"$2}'
+          timeout: 10
+          max-score: 100
+
+      # Problem 4: McCarthy 91
+      - name: Test p4 - McCarthy 91
+        id: test-p4
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: p4-mccarthy-91
+          setup-command: ''
+          command: python3 run_tests.py p4 && cat build/p4.score | awk '{print $1"/"$2}'
+          timeout: 10
+          max-score: 100
+
+      # Report results to GitHub Classroom
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          TEST-P1_RESULTS: "${{steps.test-p1.outputs.result}}"
+          TEST-P2_RESULTS: "${{steps.test-p2.outputs.result}}"
+          TEST-P3_RESULTS: "${{steps.test-p3.outputs.result}}"
+          TEST-P4_RESULTS: "${{steps.test-p4.outputs.result}}"
+        with:
+          runners: test-p1,test-p2,test-p3,test-p4
