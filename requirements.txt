@@ -1,0 +1,12 @@
+# C++ Lab 測試系統依賴套件
+# Python 版本要求: Python 3.7+
+
+# 網頁框架 - 用於 GUI 介面
+Flask>=2.0.0
+
+# YAML 配置檔案解析
+PyYAML>=5.4.0
+
+# Markdown 轉換 - 用於顯示題目說明
+markdown>=3.3.0
+

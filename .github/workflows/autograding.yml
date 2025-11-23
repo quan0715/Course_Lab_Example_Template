@@ -1,0 +1,168 @@
+name: Autograding
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout 學生程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Python 環境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安裝 Python 依賴套件
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 安裝 C++ 編譯器
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++
+
+      - name: 驗證環境設定
+        run: |
+          python --version
+          g++ --version
+          python scripts/verify_python_setup.py || true
+
+      - name: 執行所有測試
+        id: run_tests
+        run: |
+          python run_tests.py > test_results.txt 2>&1
+          cat test_results.txt
+
+      - name: 收集測試結果
+        if: always()
+        run: |
+          echo "## 測試結果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat test_results.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -d "build" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 分數統計" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            total_score=0
+            max_score=0
+            
+            for score_file in build/*.score; do
+              if [ -f "$score_file" ]; then
+                problem=$(basename "$score_file" .score)
+                read score max < "$score_file"
+                total_score=$((total_score + score))
+                max_score=$((max_score + max))
+                
+                if [ "$score" -eq "$max" ]; then
+                  status="✅"
+                else
+                  status="❌"
+                fi
+                
+                echo "- $status **$problem**: $score / $max" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 總分: $total_score / $max_score" >> $GITHUB_STEP_SUMMARY
+            
+            # 儲存總分供後續使用
+            echo "TOTAL_SCORE=$total_score" >> $GITHUB_ENV
+            echo "MAX_SCORE=$max_score" >> $GITHUB_ENV
+          fi
+
+      - name: 上傳測試報告
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            test_results.txt
+            build/*.score
+            build/*.log
+          retention-days: 30
+
+      - name: 建立評分註解
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let comment = '## 🤖 自動評分結果\n\n';
+            
+            if (fs.existsSync('build')) {
+              const files = fs.readdirSync('build').filter(f => f.endsWith('.score'));
+              
+              comment += '| 題目 | 得分 | 狀態 |\n';
+              comment += '|------|------|------|\n';
+              
+              let totalScore = 0;
+              let maxScore = 0;
+              
+              files.forEach(file => {
+                const content = fs.readFileSync(`build/${file}`, 'utf8').trim().split(' ');
+                const score = parseInt(content[0]);
+                const max = parseInt(content[1]);
+                const problem = file.replace('.score', '');
+                const status = score === max ? '✅' : '❌';
+                
+                totalScore += score;
+                maxScore += max;
+                
+                comment += `| ${problem} | ${score}/${max} | ${status} |\n`;
+              });
+              
+              comment += `\n### 總分: ${totalScore} / ${maxScore}\n\n`;
+              
+              if (totalScore === maxScore) {
+                comment += '🎉 **恭喜！所有測試都通過了！**\n';
+              } else {
+                comment += '⚠️ 還有一些測試未通過，請檢查測試結果並修正程式碼。\n';
+              }
+            } else {
+              comment += '❌ 無法讀取測試結果\n';
+            }
+            
+            comment += '\n---\n';
+            comment += '詳細測試日誌請查看 Actions 頁面的 Artifacts。\n';
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: 檢查是否全部通過
+        if: always()
+        run: |
+          if [ -n "$TOTAL_SCORE" ] && [ -n "$MAX_SCORE" ]; then
+            if [ "$TOTAL_SCORE" -eq "$MAX_SCORE" ]; then
+              echo "✅ 所有測試通過！"
+              exit 0
+            else
+              echo "❌ 有測試未通過"
+              echo "得分: $TOTAL_SCORE / $MAX_SCORE"
+              exit 1
+            fi
+          else
+            echo "⚠️ 無法判斷測試結果"
+            exit 1
+          fi
+

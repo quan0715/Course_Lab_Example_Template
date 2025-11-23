@@ -44,8 +44,20 @@ tmp/
 *.diff
 *.out
 
-# PyInstaller
-*.spec
+# Python virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
 
 # Coverage
 *.gcda
