@@ -36,6 +36,16 @@ if %ERRORLEVEL% NEQ 0 (
 for /f "tokens=*" %%i in ('python --version') do set PYTHON_VERSION=%%i
 echo [成功] 已找到 %PYTHON_VERSION%
 
+REM 檢查 Python 版本（需要 3.7+）
+python -c "import sys; exit(0 if sys.version_info >= (3,7) else 1)" >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo [錯誤] Python 版本過舊，需要 Python 3.7 或更新版本
+    echo.
+    pause
+    exit /b 1
+)
+echo [成功] Python 版本符合要求
+
 REM 建立虛擬環境
 echo.
 echo ============================================================
@@ -73,6 +83,13 @@ echo 3. 啟動虛擬環境
 echo ============================================================
 echo.
 
+if not exist "venv\Scripts\activate.bat" (
+    echo [錯誤] 找不到虛擬環境啟動腳本
+    echo [錯誤] 請確認 venv\ 目錄已正確建立
+    pause
+    exit /b 1
+)
+
 call venv\Scripts\activate.bat
 if %ERRORLEVEL% NEQ 0 (
     echo [錯誤] 虛擬環境啟動失敗
@@ -95,7 +112,11 @@ echo.
 
 echo 正在升級 pip 到最新版本...
 python -m pip install --upgrade pip --quiet
-echo [成功] pip 升級完成
+if %ERRORLEVEL% NEQ 0 (
+    echo [警告] pip 升級失敗，但可以繼續安裝套件
+) else (
+    echo [成功] pip 升級完成
+)
 
 REM 安裝套件
 echo.
@@ -115,6 +136,16 @@ pip install -r requirements.txt --quiet
 
 if %ERRORLEVEL% NEQ 0 (
     echo [錯誤] 套件安裝失敗
+    echo.
+    echo 可能原因：
+    echo   - 網路連線問題
+    echo   - PyPI 伺服器無法訪問
+    echo   - 套件版本衝突
+    echo.
+    echo 請嘗試：
+    echo   1. 檢查網路連線
+    echo   2. 重新執行此腳本
+    echo   3. 手動執行: pip install -r requirements.txt
     pause
     exit /b 1
 )
@@ -127,8 +158,14 @@ echo 6. 驗證環境設定
 echo ============================================================
 echo.
 
+set VERIFICATION_FAILED=0
+
 if exist "scripts\verify_python_setup.py" (
     python scripts\verify_python_setup.py
+    if %ERRORLEVEL% NEQ 0 (
+        set VERIFICATION_FAILED=1
+        echo [警告] 環境驗證未完全通過，但您仍可以嘗試使用系統
+    )
 ) else (
     echo [警告] 找不到驗證腳本，跳過驗證
 )
@@ -140,7 +177,11 @@ echo 設定完成！
 echo ============================================================
 echo.
 
-echo 環境已設定完成。每次使用時，請記得啟動虛擬環境：
+if %VERIFICATION_FAILED%==0 (
+    echo 環境已設定完成。每次使用時，請記得啟動虛擬環境：
+) else (
+    echo 環境設定已完成，但驗證有警告。每次使用時，請記得啟動虛擬環境：
+)
 echo.
 echo   venv\Scripts\activate
 echo.

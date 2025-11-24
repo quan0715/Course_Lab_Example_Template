@@ -175,13 +175,16 @@ def main():
             print_error(f"{check_name}: 失敗")
             all_passed = False
     
+    # 根據作業系統決定要顯示的 Python 命令
+    python_cmd = "python" if sys.platform == "win32" else "python3"
+    
     print()
     if all_passed:
         print(f"{Colors.GREEN}{Colors.BOLD}🎉 環境設定完成！您可以開始使用測試系統了{Colors.RESET}")
         print()
         print("接下來可以執行:")
-        print(f"  {Colors.BOLD}python3 run_tests.py{Colors.RESET}        # 執行所有測試")
-        print(f"  {Colors.BOLD}python3 run_tests.py --gui{Colors.RESET}  # 啟動網頁介面")
+        print(f"  {Colors.BOLD}{python_cmd} run_tests.py{Colors.RESET}        # 執行所有測試")
+        print(f"  {Colors.BOLD}{python_cmd} run_tests.py --gui{Colors.RESET}  # 啟動網頁介面")
         print()
         return 0
     else:

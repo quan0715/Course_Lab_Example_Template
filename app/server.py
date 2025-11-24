@@ -2,6 +2,8 @@ import os
 import sys
 import glob
 import markdown
+import webbrowser
+import threading
 from flask import Flask, jsonify, render_template, send_from_directory, request
 from app.utils import SRC_DIR, BUILD_DIR, TESTS_DIR
 from app.config import load_config, get_problem_points, get_problem_name, get_app_title, get_app_description, get_timeout
@@ -360,4 +362,21 @@ def start_server():
                 'details': str(e)
             })
 
+    def open_browser():
+        """在伺服器啟動後自動打開瀏覽器"""
+        import time
+        time.sleep(1.5)  # 等待伺服器啟動
+        webbrowser.open('http://localhost:8080')
+    
+    # 在背景執行緒中打開瀏覽器
+    threading.Thread(target=open_browser, daemon=True).start()
+    
+    print("\n" + "="*60)
+    print("🚀 C++ Lab 測試系統 - 網頁介面")
+    print("="*60)
+    print(f"📡 伺服器位址: http://localhost:8080")
+    print(f"🌐 正在自動開啟瀏覽器...")
+    print(f"💡 提示: 按 Ctrl+C 停止伺服器")
+    print("="*60 + "\n")
+    
     app.run(host='0.0.0.0', port=8080, debug=True)

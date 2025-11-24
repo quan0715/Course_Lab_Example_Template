@@ -94,15 +94,31 @@ fi
 # 啟動虛擬環境
 print_header "3. 啟動虛擬環境"
 
-source venv/bin/activate
-print_success "虛擬環境已啟動"
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+    if [ $? -eq 0 ]; then
+        print_success "虛擬環境已啟動"
+    else
+        print_error "虛擬環境啟動失敗"
+        exit 1
+    fi
+else
+    print_error "找不到虛擬環境啟動腳本"
+    print_error "請確認 venv/ 目錄已正確建立"
+    exit 1
+fi
 
 # 升級 pip
 print_header "4. 升級 pip"
 
 echo "正在升級 pip 到最新版本..."
 python -m pip install --upgrade pip --quiet
-print_success "pip 升級完成"
+
+if [ $? -eq 0 ]; then
+    print_success "pip 升級完成"
+else
+    print_warning "pip 升級失敗，但可以繼續安裝套件"
+fi
 
 # 安裝套件
 print_header "5. 安裝必要套件"
@@ -119,14 +135,30 @@ if [ $? -eq 0 ]; then
     print_success "套件安裝完成"
 else
     print_error "套件安裝失敗"
+    echo ""
+    echo "可能原因："
+    echo "  - 網路連線問題"
+    echo "  - PyPI 伺服器無法訪問"
+    echo "  - 套件版本衝突"
+    echo ""
+    echo "請嘗試："
+    echo "  1. 檢查網路連線"
+    echo "  2. 重新執行此腳本"
+    echo "  3. 手動執行: pip install -r requirements.txt"
     exit 1
 fi
 
 # 驗證安裝
 print_header "6. 驗證環境設定"
 
+VERIFICATION_FAILED=0
+
 if [ -f "scripts/verify_python_setup.py" ]; then
     python scripts/verify_python_setup.py
+    if [ $? -ne 0 ]; then
+        VERIFICATION_FAILED=1
+        print_warning "環境驗證未完全通過，但您仍可以嘗試使用系統"
+    fi
 else
     print_warning "找不到驗證腳本，跳過驗證"
 fi
@@ -134,7 +166,11 @@ fi
 # 完成
 print_header "設定完成！"
 
-echo "環境已設定完成。每次使用時，請記得啟動虛擬環境："
+if [ $VERIFICATION_FAILED -eq 0 ]; then
+    echo "環境已設定完成。每次使用時，請記得啟動虛擬環境："
+else
+    echo "環境設定已完成，但驗證有警告。每次使用時，請記得啟動虛擬環境："
+fi
 echo ""
 echo -e "${BOLD}  source venv/bin/activate${NC}"
 echo ""
