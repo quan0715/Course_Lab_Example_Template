@@ -10,7 +10,7 @@ from app.config import load_config, get_problem_points, get_problem_name, get_ap
 from app.compiler import find_source
 from app.runner import run_problem
 
-def start_server():
+def start_server(debug=False):
     # Determine template folder path (works for source and PyInstaller)
     if getattr(sys, 'frozen', False):
         template_folder = os.path.join(sys._MEIPASS, 'templates')
@@ -368,7 +368,7 @@ def start_server():
         time.sleep(1.5)  # 等待伺服器啟動
         webbrowser.open('http://localhost:8080')
     
-    # 在背景執行緒中打開瀏覽器
+    # 自動打開瀏覽器（debug=False 時不會有 reloader，只會打開一次）
     threading.Thread(target=open_browser, daemon=True).start()
     
     print("\n" + "="*60)
@@ -377,6 +377,8 @@ def start_server():
     print(f"📡 伺服器位址: http://localhost:8080")
     print(f"🌐 正在自動開啟瀏覽器...")
     print(f"💡 提示: 按 Ctrl+C 停止伺服器")
+    if debug:
+        print(f"⚙️  除錯模式: 已啟用")
     print("="*60 + "\n")
     
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=debug)

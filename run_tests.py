@@ -78,6 +78,7 @@ def main():
     parser.add_argument("--color", action="store_true", help="Force color output")
     parser.add_argument("--no-color", action="store_true", help="Disable color output")
     parser.add_argument("--gui", action="store_true", help="Launch Web UI")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode (for developers)")
     
     args = parser.parse_args()
     
@@ -99,7 +100,7 @@ def main():
     print(f"{Colors.BLUE}{Colors.BOLD}────────────────────────────────────────────────────────{Colors.RESET}")
 
     if args.gui:
-        start_server()
+        start_server(debug=args.debug)
     else:
         # CLI Mode
         problems = []
