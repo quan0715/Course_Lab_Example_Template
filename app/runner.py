@@ -179,6 +179,10 @@ def run_problem(prob, config, capture_logs=False):
         
     bin_path, compile_log = compile_problem_with_log(prob, src, BUILD_DIR)
     if not bin_path:
+        if not capture_logs:
+            print(f"{prefixes['FAIL']} Compilation failed:")
+            print(compile_log)
+            
         total_points = get_problem_points(config, prob)
         return 1, 0, total_points, [{
             "case": "Compilation", 

@@ -1,44 +1,78 @@
 {# Modals for problem details and help #}
-<!-- Problem Detail Modal -->
-<div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
-    <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header" style="display: block;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-                <h2 class="modal-title" id="modal-title" style="font-size: 2rem; margin: 0;">Problem Title</h2>
-                <button class="modal-close" onclick="closeModal()" style="margin-top: 8px;">
-                    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2"/></svg>
-                </button>
-            </div>
-            <div class="modal-tabs" style="margin-left: 0; border-bottom: 1px solid var(--cds-border-subtle);">
-                <button class="tab-btn active" onclick="switchTab('info')">題目資訊 (Info)</button>
-                <button class="tab-btn" onclick="switchTab('code')">程式碼 (Code)</button>
-                <button class="tab-btn" onclick="switchTab('results')">測試結果 (Results)</button>
-            </div>
-        </div>
-        <div class="modal-body">
-            <div id="tab-info" class="tab-content active">
-                <div id="modal-body"></div>
-            </div>
-            <div id="tab-code" class="tab-content" style="height: 100%; display: none; flex-direction: column;">
-                <div id="editor-container" style="flex: 1;"></div>
-                <div class="editor-toolbar">
-                    <button class="btn btn-secondary" onclick="loadCode(currentProb)">
-                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M16,2A14,14,0,1,0,30,16,14,14,0,0,0,16,2Zm0,26A12,12,0,1,1,28,16,12,12,0,0,1,16,28Z"/><path d="M16,10a1,1,0,0,0-1,1v5H11a1,1,0,0,0-1,1,1,1,0,0,0,1,1h4a1,1,0,0,0,1-1V11A1,1,0,0,0,16,10Z"/></svg>
-                        重新載入
+<!-- Problem View (Full Screen Split Layout) -->
+<div id="problem-view" class="problem-view">
+    <div class="problem-view-header">
+        <div class="header-left">
+            <button class="btn btn-ghost btn-icon" onclick="closeProblemView()" title="返回列表">
+                <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M14 26L15.41 24.59 7.83 17 28 17 28 15 7.83 15 15.41 7.41 14 6 4 16 14 26z"/></svg>
+            </button>
+            
+
+            <div class="problem-nav-controls" style="position: relative;">
+                <div style="display: flex; align-items: center;">
+                    <button class="btn btn-ghost problem-list-btn" onclick="toggleProblemList()" title="題目列表">
+                        <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor"><path d="M4 6H28V8H4zM4 12H28V14H4zM4 18H28V20H4zM4 24H28V26H4z"/></svg>
+                        <span>Problem List</span>
                     </button>
-                    <button class="btn btn-secondary" id="btn-save" onclick="saveCode()" disabled>
-                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M27.71,9.29l-5-5A1,1,0,0,0,22,4H6A2,2,0,0,0,4,6V26a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V10A1,1,0,0,0,27.71,9.29ZM12,6h8v4H12Zm8,20H12V18h8Zm2,0V18a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2v8H6V6h4v4a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V6.41l4,4V26Z"/></svg>
-                        儲存
+                    <button class="btn btn-ghost btn-icon" id="btn-prev-prob" onclick="prevProblem()" title="上一題" style="margin-left: 4px;">
+                        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M20 24L10 16 20 8z"/></svg>
                     </button>
-                    <button class="btn" onclick="runFromEditor()">
-                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>
-                        執行測試
+                    <button class="btn btn-ghost btn-icon" id="btn-next-prob" onclick="nextProblem()" title="下一題">
+                        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M12 8L22 16 12 24z"/></svg>
                     </button>
                 </div>
+                
+                <!-- Dropdown Menu -->
+                <div id="problem-list-dropdown" class="problem-list-dropdown">
+                    <!-- Items will be injected by JS -->
+                </div>
             </div>
-            <div id="tab-results" class="tab-content" style="display: none; padding: 24px;">
-                <div id="results-container">
-                    <div style="text-align:center; color: var(--cds-text-secondary);">尚未執行測試</div>
+
+
+            <h2 id="problem-view-title">Problem Title</h2>
+            
+            <!-- Problem Info Container -->
+            <div id="problem-header-info" style="display: flex; align-items: center; margin-left: 16px; gap: 12px;"></div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-secondary btn-sm" id="btn-save-view" onclick="saveCode()" disabled>
+                <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M27.71,9.29l-5-5A1,1,0,0,0,22,4H6A2,2,0,0,0,4,6V26a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V10A1,1,0,0,0,27.71,9.29ZM12,6h8v4H12Zm8,20H12V18h8Zm2,0V18a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2v8H6V6h4v4a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V6.41l4,4V26Z"/></svg>
+                儲存 (Save)
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="runFromEditor()">
+                <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 32 32" fill="currentColor"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>
+                執行測試 (Run)
+            </button>
+        </div>
+    </div>
+    
+    <div class="split-container">
+        <!-- Left Pane: Description -->
+        <div class="split-pane left-pane">
+            <!-- Language Selector -->
+            <div id="lang-selector-container" class="lang-selector-container" style="display: none;">
+                <!-- Language buttons will be injected by JS -->
+            </div>
+            <div class="pane-content" id="problem-description-content">
+                <!-- Description loaded here -->
+            </div>
+        </div>
+        
+        <!-- Right Pane: Code & Results -->
+        <div class="split-pane right-pane">
+            <div class="code-section">
+                <div class="section-header">
+                    <span style="font-weight: 600; font-size: 0.875rem; color: var(--cds-text-secondary);">Code</span>
+                </div>
+                <div id="editor-container-view" class="monaco-container"></div>
+            </div>
+            
+            <div class="results-section">
+                <div class="section-header">
+                    <span style="font-weight: 600; font-size: 0.875rem; color: var(--cds-text-secondary);">Test Results</span>
+                </div>
+                <div id="results-container-view" class="results-content">
+                    <div style="text-align:center; color: var(--cds-text-secondary); padding: 20px;">尚未執行測試</div>
                 </div>
             </div>
         </div>

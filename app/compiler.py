@@ -3,6 +3,7 @@ import glob
 import platform
 import subprocess
 from app.utils import SRC_DIR, get_prefixes
+from app.config import load_config
 
 def find_source(prob):
     # Exact match
@@ -20,6 +21,9 @@ def find_source(prob):
 
 def compile_problem(prob, src, build_dir):
     prefixes = get_prefixes()
+    config = load_config()
+    compiler = config.get("compiler_path", "g++")
+    
     bin_path = os.path.join(build_dir, prob)
     if platform.system() == "Windows":
         bin_path += ".exe"
@@ -27,7 +31,7 @@ def compile_problem(prob, src, build_dir):
     print(f"{prefixes['BUILD']} Compiling {src}...")
     log_path = os.path.join(build_dir, f"{prob}.compile.log")
     
-    cmd = ["g++", "-std=c++17", "-O2", src, "-o", bin_path]
+    cmd = [compiler, "-std=c++17", "-O2", src, "-o", bin_path]
     
     try:
         with open(log_path, "w") as log:
@@ -36,6 +40,10 @@ def compile_problem(prob, src, build_dir):
         return bin_path
     except subprocess.CalledProcessError:
         print(f"{prefixes['FAIL']} Compilation failed for {prob}. See {log_path}")
+        return None
+    except FileNotFoundError:
+        print(f"{prefixes['FAIL']} Compiler not found: '{compiler}'")
+        print(f"  Please check your PATH or update 'compiler_path' in config/config.yaml")
         return None
 
 def compile_problem_with_log(prob, src, build_dir):
@@ -57,7 +65,9 @@ def compile_problem_with_log(prob, src, build_dir):
     if not needs_compile:
         return bin_path, ""
 
-    cmd = ["g++", "-std=c++17", "-O2", src, "-o", bin_path]
+    config = load_config()
+    compiler = config.get("compiler_path", "g++")
+    cmd = [compiler, "-std=c++17", "-O2", src, "-o", bin_path]
     
     try:
         with open(log_path, "w") as log:
@@ -70,3 +80,5 @@ def compile_problem_with_log(prob, src, build_dir):
             with open(log_path, 'r') as f:
                 log_content = f.read()
         return None, log_content
+    except FileNotFoundError:
+        return None, f"Compiler not found: '{compiler}'. Please check your PATH or update 'compiler_path' in config/config.yaml"

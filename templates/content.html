@@ -1,40 +1,67 @@
 <header>
-    <div class="header-top">
-        <h1 id="page-title">程式測驗系統</h1>
-        <div style="display: flex; gap: 12px; align-items: center;">
-            <button class="btn btn-ghost" onclick="toggleTheme()" title="切換深色模式" style="padding: 10px; min-height: 40px; border: 1px solid var(--cds-border-subtle);">
-                <svg id="theme-icon" width="20" height="20" viewBox="0 0 32 32" fill="currentColor">
-                    <path d="M15,2A13,13,0,1,0,28,15,13,13,0,0,0,15,2Zm0,24A11,11,0,1,1,26,15,11,11,0,0,1,15,26ZM15,4a11,11,0,0,0,0,22V4Z"/>
-                </svg>
-            </button>
-            <button class="btn btn-secondary" onclick="openHelpModal()" title="操作說明">說明 (Help)</button>
-            <button class="btn btn-git" onclick="pushToGitHub()" title="推送程式碼到 GitHub">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 6px;">
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-                </svg>
-                Push to GitHub
-            </button>
-            <button class="btn" onclick="runAll()">執行所有測試
-                <svg class="icon-play" style="margin-left: 8px;" viewBox="0 0 32 32"><path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/></svg>
-            </button>
-        </div>
+    <div class="header-left">
+        <a href="/" class="header-brand">C++ Lab</a>
+        <span style="color: #c6c6c6; font-size: 0.875rem; border-left: 1px solid #393939; padding-left: 16px; margin-left: 0; line-height: 20px;">計算機概論與程式設計 C++ Lab</span>
     </div>
-    <div class="app-description" id="app-description"></div>
+    <div class="header-right">
+        <button class="header-action-btn" onclick="toggleTheme()" title="切換深色模式">
+            <svg id="theme-icon" width="20" height="20" viewBox="0 0 32 32">
+                <path d="M15,2A13,13,0,1,0,28,15,13,13,0,0,0,15,2Zm0,24A11,11,0,1,1,26,15,11,11,0,0,1,15,26ZM15,4a11,11,0,0,0,0,22V4Z"/>
+            </svg>
+        </button>
+        <button class="header-action-btn" onclick="openHelpModal()" title="操作說明">
+            <svg width="20" height="20" viewBox="0 0 32 32">
+                <path d="M16,2A14,14,0,1,0,30,16,14,14,0,0,0,16,2Zm0,26A12,12,0,1,1,28,16,12,12,0,0,1,16,28Z"/><circle cx="16" cy="23.5" r="1.5"/><path d="M17,8H15.5A4.49,4.49,0,0,0,11,12.5V13h2v-.5A2.5,2.5,0,0,1,15.5,10H17a2.5,2.5,0,0,1,0,5H15v4.5h2V17a4.5,4.5,0,0,0,0-9Z"/>
+            </svg>
+        </button>
+    </div>
 </header>
 
-<div class="stats-bar" id="stats-bar">
-    <div class="stat-item">
-        <div class="stat-value success" id="stat-passed">0</div>
-        <div class="stat-label">通過 (Passed)</div>
+<main class="main-content">
+    <div style="margin-bottom: 24px;">
+        <h1 id="page-title">計算機概論與程式設計 C++ Lab</h1>
+        <div class="app-description" id="app-description"></div>
     </div>
-    <div class="stat-item">
-        <div class="stat-value danger" id="stat-failed">0</div>
-        <div class="stat-label">失敗 (Failed)</div>
+
+<!-- Action Toolbar -->
+<div class="action-toolbar">
+    <div class="toolbar-left">
+        <h2 style="font-size: 1.25rem; font-weight: 400; margin: 0;">題目列表</h2>
+        <div id="progress-indicator" style="display: flex; align-items: center; gap: 12px; margin-left: 24px;">
+            <!-- Progress will be injected by JS -->
+        </div>
     </div>
-    <div class="stat-item">
-        <div class="stat-value primary" id="stat-score">0 / 0</div>
-        <div class="stat-label">總分 (Total Score)</div>
+    <div class="toolbar-right">
+        <button class="btn btn-git" onclick="pushToGitHub()">
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor" style="margin-right: 8px;">
+                <path d="M16,2A14,14,0,0,0,2,16c0,6.18,4,11.42,9.58,13.29.7.13,1-.3,1-.67s0-1.21,0-2.38c-3.89.84-4.71-1.88-4.71-1.88a3.71,3.71,0,0,0-1.62-2.05c-1.27-.86.1-.85.1-.85a2.94,2.94,0,0,1,2.14,1.45,3,3,0,0,0,4.08,1.16,2.93,2.93,0,0,1,.88-1.87c-3.1-.35-6.37-1.55-6.37-6.9a5.4,5.4,0,0,1,1.44-3.76,5,5,0,0,1,.14-3.7s1.17-.38,3.85,1.43a13.3,13.3,0,0,1,7,0c2.67-1.81,3.84-1.43,3.84-1.43a5,5,0,0,1,.14,3.7,5.4,5.4,0,0,1,1.44,3.76c0,5.36-3.27,6.54-6.39,6.9a3.33,3.33,0,0,1,.95,2.58c0,1.86,0,3.36,0,3.82s.29.81,1,.67A14,14,0,0,0,30,16,14,14,0,0,0,16,2Z"/>
+            </svg>
+            提交 (Push)
+        </button>
+        <button class="btn btn-primary" onclick="runAll()">
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor" style="margin-right: 8px;">
+                <path d="M7,28a1,1,0,0,1-1-1V5a1,1,0,0,1,1.4819-.8763l20,11a1,1,0,0,1,0,1.7525l-20,11A1.0005,1.0005,0,0,1,7,28Z"/>
+            </svg>
+            執行全部 (Run All)
+        </button>
     </div>
 </div>
 
-<div id="grid" class="grid"></div>
+<!-- Data Table -->
+<div class="data-table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 48px;">狀態</th>
+                <th>題目名稱</th>
+                <th style="width: 120px;">得分</th>
+                <th style="width: 120px;">測試通過</th>
+                <th style="width: 100px; text-align: right;">操作</th>
+            </tr>
+        </thead>
+        <tbody id="problem-table-body">
+            <!-- Rows will be injected by JS -->
+        </tbody>
+    </table>
+</div>
+</main>

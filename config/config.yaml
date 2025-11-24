@@ -1,6 +1,7 @@
 app:
   title: C++ Lab (Template Project)
   description: 這是用來測試C++ Lab的模板專案
+compiler_path: "g++"
 problems:
   p1:
     name: Sum Sum

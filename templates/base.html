@@ -8,12 +8,12 @@
     <title>Lab Test Runner</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     
-    {% include 'styles.html' %}
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     {% block content %}{% endblock %}
     
     {% include 'modals.html' %}
-    {% include 'scripts.html' %}
+    <script src="/static/script.js"></script>
 </body>
 </html>

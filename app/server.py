@@ -182,17 +182,42 @@ def start_server(debug=False):
     @app.route('/api/problem/<prob>/info')
     def api_problem_info(prob):
         config = load_config()
+        lang = request.args.get('lang', '')  # Get language parameter
+        
+        # Detect available languages
+        available_langs = []
+        problems_dir = 'problems'
+        
+        # Check for default (no lang suffix)
+        default_file = os.path.join(problems_dir, f"{prob}.md")
+        if os.path.exists(default_file):
+            available_langs.append('')  # Empty string represents default
+        
+        # Check for language-specific files
+        for possible_lang in ['en', 'zh', 'zh-tw', 'zh-cn', 'ja', 'es', 'fr', 'de']:
+            lang_file = os.path.join(problems_dir, f"{prob}.{possible_lang}.md")
+            if os.path.exists(lang_file):
+                available_langs.append(possible_lang)
+        
+        # Determine which file to load
+        desc_file = None
+        if lang and lang in available_langs:
+            desc_file = os.path.join(problems_dir, f"{prob}.{lang}.md")
+        elif '' in available_langs:
+            desc_file = os.path.join(problems_dir, f"{prob}.md")
+        elif available_langs:
+            # Fallback to first available language
+            desc_file = os.path.join(problems_dir, f"{prob}.{available_langs[0]}.md")
         
         # Get description from markdown file
-        desc_file = os.path.join('problems', f"{prob}.md")
         desc_content = ""
-        if os.path.exists(desc_file):
+        if desc_file and os.path.exists(desc_file):
             with open(desc_file, 'r', encoding='utf-8') as f:
                 desc_md = f.read()
                 # Convert markdown to HTML using the markdown library
                 desc_content = markdown.markdown(desc_md, extensions=['fenced_code', 'tables'])
         else:
-            desc_content = markdown.markdown(f"# {prob}\nNo description available.", extensions=['fenced_code', 'tables'])
+            desc_content = markdown.markdown(f"# {prob}\\nNo description available.", extensions=['fenced_code', 'tables'])
         
         # Get forbidden and required keywords
         forbidden = []
@@ -205,6 +230,31 @@ def start_server(debug=False):
                     forbidden = forbidden_val
                 if isinstance(required_val, list):
                     required = required_val
+        
+        # Load test cases
+        test_cases = []
+        test_input_dir = os.path.join(TESTS_DIR, prob, 'inputs')
+        test_output_dir = os.path.join(TESTS_DIR, prob, 'outputs')
+        
+        if os.path.exists(test_input_dir) and os.path.exists(test_output_dir):
+            input_files = sorted(glob.glob(os.path.join(test_input_dir, '*.in')))
+            for input_file in input_files:
+                basename = os.path.basename(input_file).replace('.in', '')
+                output_file = os.path.join(test_output_dir, f"{basename}.out")
+                
+                if os.path.exists(output_file):
+                    try:
+                        with open(input_file, 'r', encoding='utf-8') as f:
+                            input_content = f.read().strip()
+                        with open(output_file, 'r', encoding='utf-8') as f:
+                            output_content = f.read().strip()
+                        
+                        test_cases.append({
+                            'input': input_content,
+                            'expected': output_content
+                        })
+                    except Exception as e:
+                        print(f"Error reading test case {basename}: {e}")
             
         return jsonify({
             "name": prob,
@@ -213,7 +263,9 @@ def start_server(debug=False):
             "points": get_problem_points(config, prob),
             "timeout": get_timeout(config, prob),
             "forbidden": forbidden,
-            "required": required
+            "required": required,
+            "test_cases": test_cases,
+            "available_langs": available_langs
         })
 
     @app.route('/api/git_push', methods=['POST'])
