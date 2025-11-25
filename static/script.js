@@ -189,10 +189,6 @@ function updateProgressIndicator() {
         // Update navigation buttons
         updateNavButtons(probName);
         
-        // Reset save button
-        const btnSave = document.getElementById('btn-save-view');
-        btnSave.disabled = true;
-        
         // Reset results
         document.getElementById('results-container-view').innerHTML = '<div style="text-align:center; color: var(--cds-text-secondary); padding: 20px;">尚未執行測試</div>';
         
@@ -266,6 +262,9 @@ function updateProgressIndicator() {
             // Wrap description in padding container
             document.getElementById('problem-description-content').innerHTML = `<div style="padding: 24px;">${html}</div>`;
             
+            // Render math formulas if KaTeX is available
+            renderMath();
+            
             // Initialize Cases from API response
         currentProblemCases = info.test_cases || [];
         renderPendingCases();
@@ -294,6 +293,37 @@ function updateProgressIndicator() {
             return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
         }).join('\n');
         return html;
+    }
+
+    // Render math formulas using KaTeX
+    function renderMath() {
+        const element = document.getElementById('problem-description-content');
+        if (!element) return;
+        
+        // If KaTeX is available, render immediately
+        if (window.renderMathInElement) {
+            window.renderMathInElement(element, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false
+            });
+        } else {
+            // KaTeX not loaded yet, try again after a delay
+            setTimeout(renderMath, 100);
+        }
+    }
+    
+    // Flush any pending auto-save and save immediately
+    function flushAutoSave() {
+        if (autoSaveTimeout) {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = null;
+        }
+        return saveCode();
     }
 
     function renderTestResults(details) {
@@ -326,6 +356,8 @@ function updateProgressIndicator() {
     }
 
     function closeProblemView() { // Was closeModal
+        // Flush any pending auto-save before closing
+        flushAutoSave();
         document.getElementById('problem-view').classList.remove('is-visible');
         // Refresh table when closing to show updated stats
         renderTable();
@@ -462,6 +494,8 @@ function updateProgressIndicator() {
     let editor = null;
     let editorLoaded = false;
     let editorInitializing = false;
+    let autoSaveTimeout = null;
+    const AUTO_SAVE_DELAY = 1000; // Auto-save after 1 second of inactivity
 
     function initEditor() {
         if (editorLoaded || editorInitializing) return;
@@ -480,10 +514,14 @@ function updateProgressIndicator() {
                 minimap: { enabled: false }
             });
             
-            // Enable save button on change
+            // Auto-save on change with debouncing
             editor.onDidChangeModelContent(() => {
-                const btnSave = document.getElementById('btn-save-view');
-                if (btnSave) btnSave.disabled = false;
+                if (autoSaveTimeout) {
+                    clearTimeout(autoSaveTimeout);
+                }
+                autoSaveTimeout = setTimeout(() => {
+                    autoSaveCode();
+                }, AUTO_SAVE_DELAY);
             });
             
             // Mark editor as loaded FIRST
@@ -510,9 +548,6 @@ function updateProgressIndicator() {
             console.log('Code fetched, length:', data.content ? data.content.length : 0);
             if (data.content) {
                 editor.setValue(data.content);
-                // Reset save button
-                const btnSave = document.getElementById('btn-save-view');
-                if (btnSave) btnSave.disabled = true;
                 console.log('Code loaded successfully');
             }
         } catch (err) {
@@ -531,23 +566,32 @@ function updateProgressIndicator() {
                 body: JSON.stringify({ content: content })
             });
             const data = await res.json();
-            if (data.success) {
-                // Disable save button
-                const btnSave = document.getElementById('btn-save-view');
-                if (btnSave) btnSave.disabled = true;
-            } else {
-                alert('儲存失敗: ' + data.error);
+            if (!data.success) {
+                console.error('儲存失敗: ' + data.error);
             }
         } catch (err) {
-            alert('儲存失敗: ' + err);
+            console.error('儲存失敗: ' + err);
+        }
+    }
+    
+    // Auto-save function (silent, no alerts)
+    async function autoSaveCode() {
+        if (!editor || !currentProb) return;
+        const content = editor.getValue();
+        try {
+            await fetch(`/api/code/${currentProb}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content })
+            });
+        } catch (err) {
+            console.error('Auto-save failed:', err);
         }
     }
     
     async function runFromEditor() {
-        const btnSave = document.getElementById('btn-save-view');
-        if (!btnSave.disabled) {
-            await saveCode();
-        }
+        // Flush any pending auto-save before running
+        await flushAutoSave();
         
         // Switch to result tab
     // switchTab('test-result'); // Removed tab switching
