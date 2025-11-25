@@ -435,7 +435,11 @@ function updateProgressIndicator() {
         document.getElementById('btn-next-prob').disabled = (idx === -1 || idx >= problems.length - 1);
     }
 
-    // Update the status badge in problem view header
+    /**
+     * Updates the status badge in the problem view header.
+     * Called after running tests to reflect the new pass/fail status.
+     * @param {string} probName - The name of the problem to update status for
+     */
     function updateHeaderStatus(probName) {
         const infoContainer = document.getElementById('problem-header-info');
         if (!infoContainer) return;
