@@ -297,20 +297,33 @@ function updateProgressIndicator() {
 
     // Render math formulas using KaTeX
     function renderMath() {
+        const element = document.getElementById('problem-description-content');
+        if (!element) return;
+        
+        // If KaTeX is available, render immediately
         if (window.renderMathInElement) {
-            const element = document.getElementById('problem-description-content');
-            if (element) {
-                window.renderMathInElement(element, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false},
-                        {left: '\\(', right: '\\)', display: false},
-                        {left: '\\[', right: '\\]', display: true}
-                    ],
-                    throwOnError: false
-                });
-            }
+            window.renderMathInElement(element, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false
+            });
+        } else {
+            // KaTeX not loaded yet, try again after a delay
+            setTimeout(renderMath, 100);
         }
+    }
+    
+    // Flush any pending auto-save and save immediately
+    function flushAutoSave() {
+        if (autoSaveTimeout) {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = null;
+        }
+        return saveCode();
     }
 
     function renderTestResults(details) {
@@ -343,12 +356,8 @@ function updateProgressIndicator() {
     }
 
     function closeProblemView() { // Was closeModal
-        // Save any pending changes before closing
-        if (autoSaveTimeout) {
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = null;
-            saveCode(); // Final save before closing
-        }
+        // Flush any pending auto-save before closing
+        flushAutoSave();
         document.getElementById('problem-view').classList.remove('is-visible');
         // Refresh table when closing to show updated stats
         renderTable();
@@ -581,12 +590,8 @@ function updateProgressIndicator() {
     }
     
     async function runFromEditor() {
-        // Cancel any pending auto-save and save immediately before running
-        if (autoSaveTimeout) {
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = null;
-        }
-        await saveCode();
+        // Flush any pending auto-save before running
+        await flushAutoSave();
         
         // Switch to result tab
     // switchTab('test-result'); // Removed tab switching
