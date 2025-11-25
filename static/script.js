@@ -153,8 +153,9 @@ function updateProgressIndicator() {
             renderTable();
             updateStats();
             
-            // If currently viewing this problem, update results
+            // If currently viewing this problem, update results and status badge
             if (currentProb === probName && document.getElementById('problem-view').classList.contains('is-visible')) {
+                updateHeaderStatus(probName);
                 if (data.details && data.details.length > 0) {
                     document.getElementById('results-container-view').innerHTML = renderTestResults(data.details);
                 } else {
@@ -434,6 +435,32 @@ function updateProgressIndicator() {
         document.getElementById('btn-next-prob').disabled = (idx === -1 || idx >= problems.length - 1);
     }
 
+    // Update the status badge in problem view header
+    function updateHeaderStatus(probName) {
+        const infoContainer = document.getElementById('problem-header-info');
+        if (!infoContainer) return;
+        
+        const p = problems.find(x => x.name === probName);
+        if (!p) return;
+        
+        // Find and update only the status badge
+        const badge = infoContainer.querySelector('.header-badge');
+        if (badge) {
+            if (p.has_run) {
+                const isPass = p.passed === p.total_tests && p.total_tests > 0;
+                const statusText = isPass ? 'PASS' : 'FAIL';
+                const statusColor = isPass ? 'var(--cds-success)' : 'var(--cds-danger)';
+                badge.style.backgroundColor = statusColor;
+                badge.style.color = '#fff';
+                badge.textContent = statusText;
+            } else {
+                badge.style.backgroundColor = 'var(--cds-border-subtle)';
+                badge.style.color = 'var(--cds-text-primary)';
+                badge.textContent = 'PENDING';
+            }
+        }
+    }
+
     // Keep for compatibility if called elsewhere
     function closeModal() {
         closeProblemView();
@@ -588,6 +615,9 @@ function updateProgressIndicator() {
             
             // Update stats
             renderTable();
+            
+            // Update status badge in header
+            updateHeaderStatus(currentProb);
             
             // Render results in Results View
             if (data.details && data.details.length > 0) {
